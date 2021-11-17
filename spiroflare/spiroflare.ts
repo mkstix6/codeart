@@ -90,7 +90,7 @@ const artStyles = [
     },
   },
   {
-    name: "TorusSpecter",
+    name: "TorusSpectre",
     clearBetweenFrames: false,
     maxFrames: 80,
     fadeAlpha: false,
