@@ -174,38 +174,9 @@ const artStyles = [
       ];
     },
   },
-  {
-    name: "ChromaticShift",
-    clearBetweenFrames: true,
-    maxFrames: undefined,
-    fadeAlpha: false,
-    fadeAlphaRate: 0.001,
-    stopAtZeroWidth: true,
-    concentricLines: false,
-    coverageChange: 1,
-    coverageStart: c.width * 0.65,
-    rotateMagnitude: 0,
-    actorCount: 7,
-    globalCompositeOperation: "source-over", // "lighter";
-    colorRange: 360 * pseudoRandomDecimal(),
-    colorHueShift: 360 * pseudoRandomDecimal(),
-    actorStepDistance: 10,
-    actorStepsPerFrame: 7,
-    lineRadiusStart: 20,
-    lineRadiusChangeRate: 1,
-    arcPosition(time, coverage, variance): [number, number] {
-      // prettier-ignore
-      return [
-        c.width / 2 + Math.sin(time*0.002 + variance * 6523) * coverage * variance*0.4
-        + Math.sin(time*0.0001142) * coverage * 0.3,
-        c.height / 2 + Math.cos(time*0.002 + variance * 2543) * coverage * variance*0.4
-        + Math.cos(time*0.0001142) * coverage * 0.3,
-      ];
-    },
-  },
 ];
 
-const options = artStyles[5];
+const options = artStyles[2];
 document.getElementById("artname").innerHTML = `${options.name}`;
 
 let globalAlpha = 1;
