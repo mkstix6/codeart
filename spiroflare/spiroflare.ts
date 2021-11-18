@@ -8,7 +8,7 @@ const canvasSize = 2 ** 11;
 c.width = canvasSize;
 c.height = canvasSize;
 
-// let seed = 130;
+let hardTime = 0;
 let seed = Math.ceil(Math.random() * 100);
 document.getElementById("seed").innerHTML = `${seed}`;
 
@@ -210,7 +210,8 @@ let globalAlpha = 1;
 const colorRange = options.colorRange;
 const hueShift = options.colorHueShift;
 
-function draw(time: number) {
+function draw(time: number = 0) {
+  hardTime += 16;
   frameNumber++;
   if (options.fadeAlpha) {
     globalAlpha -= options.fadeAlphaRate;
@@ -221,6 +222,7 @@ function draw(time: number) {
     fillWithBlack();
   }
   rotateCanvas();
+  drawParticles(hardTime);
   if (options.globalVariablesAdjustPer === "frame") {
     adjustGlobalVariables();
   }
