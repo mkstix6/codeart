@@ -143,6 +143,36 @@ const artStyles = [
     },
   },
   {
+    name: "WarpFlower",
+    clearBetweenFrames: false,
+    maxFrames: 400,
+    fadeAlpha: true,
+    fadeAlphaRate: 0.015,
+    stopAtZeroWidth: true,
+    concentricLines: true,
+    globalVariablesAdjustPer: "frame",
+    coverageChange: 10,
+    coverageStart: c.width * 0.59,
+    rotateMagnitude: Math.PI / (1 + Math.ceil(optionsPRDs[2] * 5) * 0.5),
+    actorCount: 3,
+    globalCompositeOperation: "source-over",
+    colorRange: 250 * optionsPRDs[0],
+    colorHueShift: 360 * optionsPRDs[1],
+    actorStepDistance: 20,
+    actorStepsPerFrame: 150,
+    lineRadiusStart: 4,
+    lineRadiusChangeRate: 0.999,
+    arcPosition(time, coverage, variance): [number, number] {
+      // prettier-ignore
+      return [
+        c.width / 2 + Math.sin(time*0.002 + variance * 6523) * coverage * variance*0.4
+        + Math.sin(time*0.0017564) * coverage * 0.3,
+        c.height / 2 + Math.cos(time*0.002 + variance * 2543) * coverage * variance*0.4
+        + Math.cos(time*0.00016111) * coverage * 0.3,
+      ];
+    },
+  },
+  {
     name: "SpiroCoil",
     clearBetweenFrames: false,
     maxFrames: undefined,
@@ -191,11 +221,22 @@ function draw(time: number) {
     fillWithBlack();
   }
   rotateCanvas();
-  drawParticles(time);
+  if (options.globalVariablesAdjustPer === "frame") {
+    adjustGlobalVariables();
+  }
   if (!options.maxFrames || options.maxFrames > frameNumber) {
     if (!options.stopAtZeroWidth || coverage > 1) {
       window.requestAnimationFrame(draw);
     }
+  }
+}
+
+function adjustGlobalVariables() {
+  radius *= options.lineRadiusChangeRate;
+  if (options.concentricLines) {
+    coverage -= options.coverageChange;
+  } else {
+    coverage *= options.coverageChange;
   }
 }
 
@@ -251,11 +292,11 @@ let coverage = options.coverageStart;
 let radius = options.lineRadiusStart;
 function drawCircle(time: number, color: string, variance: number) {
   ctx.beginPath();
-  radius *= options.lineRadiusChangeRate;
-  if (options.concentricLines) {
-    coverage -= options.coverageChange;
-  } else {
-    coverage *= options.coverageChange;
+  if (
+    !options.globalVariablesAdjustPer ||
+    options.globalVariablesAdjustPer === "circle"
+  ) {
+    adjustGlobalVariables();
   }
   let [arcX, arcY] = options.arcPosition(time, coverage, variance);
   ctx.arc(arcX, arcY, radius, 0, Math.PI * 2);
