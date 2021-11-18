@@ -13,8 +13,14 @@ let seed = Math.ceil(Math.random() * 100);
 document.getElementById("seed").innerHTML = `${seed}`;
 
 let generator = pseudoRandom(seed);
+
 function pseudoRandomDecimal() {
   return parseFloat(`0.${generator.next().value.toString().slice(-5)}`);
+}
+// Prep a bunch of random numbers so they're stable as we add more presets
+let optionsPRDs = [];
+for (let i = 0; i < 100; i++) {
+  optionsPRDs.push(pseudoRandomDecimal());
 }
 
 const artStyles = [
@@ -30,6 +36,8 @@ const artStyles = [
     rotateMagnitude: 0.2,
     actorCount: 10,
     globalCompositeOperation: "source-over",
+    colorRange: 360 * optionsPRDs[0],
+    colorHueShift: 360 * optionsPRDs[1],
     actorStepDistance: 10,
     actorStepsPerFrame: 200,
     lineRadiusStart: 4,
@@ -65,6 +73,8 @@ const artStyles = [
     rotateMagnitude: 0.2,
     actorCount: 10,
     globalCompositeOperation: "source-over",
+    colorRange: 360 * optionsPRDs[0],
+    colorHueShift: 360 * optionsPRDs[1],
     actorStepDistance: 10,
     actorStepsPerFrame: 200,
     lineRadiusStart: 4,
@@ -89,6 +99,8 @@ const artStyles = [
     rotateMagnitude: 0.04,
     actorCount: 3,
     globalCompositeOperation: "source-over",
+    colorRange: 360 * optionsPRDs[0],
+    colorHueShift: 360 * optionsPRDs[1],
     actorStepDistance: 15,
     actorStepsPerFrame: 60,
     lineRadiusStart: 4,
@@ -114,6 +126,8 @@ const artStyles = [
     rotateMagnitude: 0.007,
     actorCount: 7,
     globalCompositeOperation: "source-over",
+    colorRange: 360 * optionsPRDs[0],
+    colorHueShift: 360 * optionsPRDs[1],
     actorStepDistance: 10,
     actorStepsPerFrame: 400,
     lineRadiusStart: 4,
@@ -141,6 +155,8 @@ const artStyles = [
     rotateMagnitude: 0.1,
     actorCount: 7,
     globalCompositeOperation: "source-over",
+    colorRange: 360 * optionsPRDs[0],
+    colorHueShift: 360 * optionsPRDs[1],
     actorStepDistance: 10,
     actorStepsPerFrame: 400,
     lineRadiusStart: 4,
