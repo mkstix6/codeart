@@ -1,18 +1,9 @@
-import { pseudoRandom, clamp } from "./utils";
+import { pseudoRandom } from "./utils";
 
 const c = <HTMLCanvasElement>document.getElementById("canvas");
 const ctx = <CanvasRenderingContext2D>c.getContext("2d");
 let frameNumber = 0;
 
-// Set canvas height
-// c.width =
-//   window.innerWidth < window.innerHeight
-//     ? window.innerWidth
-//     : window.innerHeight;
-// c.height =
-//   window.innerWidth < window.innerHeight
-//     ? window.innerWidth
-//     : window.innerHeight;
 const canvasSize = 2 ** 11;
 c.width = canvasSize;
 c.height = canvasSize;
@@ -38,9 +29,7 @@ const artStyles = [
     coverageStart: c.width * 0.2,
     rotateMagnitude: 0.2,
     actorCount: 10,
-    globalCompositeOperation: "source-over", // "lighter";
-    colorRange: 360 * pseudoRandomDecimal(),
-    colorHueShift: 360 * pseudoRandomDecimal(),
+    globalCompositeOperation: "source-over",
     actorStepDistance: 10,
     actorStepsPerFrame: 200,
     lineRadiusStart: 4,
@@ -71,13 +60,11 @@ const artStyles = [
     fadeAlphaRate: 0.001,
     stopAtZeroWidth: true,
     concentricLines: false,
-    coverageChange: 1, //0.999995,
+    coverageChange: 1,
     coverageStart: c.width * 0.3,
     rotateMagnitude: 0.2,
     actorCount: 10,
-    globalCompositeOperation: "source-over", // "lighter";
-    colorRange: 360 * pseudoRandomDecimal(),
-    colorHueShift: 360 * pseudoRandomDecimal(),
+    globalCompositeOperation: "source-over",
     actorStepDistance: 10,
     actorStepsPerFrame: 200,
     lineRadiusStart: 4,
@@ -101,13 +88,11 @@ const artStyles = [
     coverageStart: c.width * 0.3,
     rotateMagnitude: 0.04,
     actorCount: 3,
-    globalCompositeOperation: "source-over", // "lighter";
-    colorRange: 360 * pseudoRandomDecimal(),
-    colorHueShift: 360 * pseudoRandomDecimal(),
+    globalCompositeOperation: "source-over",
     actorStepDistance: 15,
     actorStepsPerFrame: 60,
     lineRadiusStart: 4,
-    lineRadiusChangeRate: 1, //0.99999,
+    lineRadiusChangeRate: 1,
     arcPosition(time, coverage, variance): [number, number] {
       // prettier-ignore
       return [
@@ -128,13 +113,11 @@ const artStyles = [
     coverageStart: c.width * 0.73,
     rotateMagnitude: 0.007,
     actorCount: 7,
-    globalCompositeOperation: "source-over", // "lighter";
-    colorRange: 360 * pseudoRandomDecimal(),
-    colorHueShift: 360 * pseudoRandomDecimal(),
+    globalCompositeOperation: "source-over",
     actorStepDistance: 10,
     actorStepsPerFrame: 400,
     lineRadiusStart: 4,
-    lineRadiusChangeRate: 1, //0.99999,
+    lineRadiusChangeRate: 1,
     arcPosition(time, coverage, variance): [number, number] {
       // prettier-ignore
       return [
@@ -157,9 +140,7 @@ const artStyles = [
     coverageStart: c.width * 0.65,
     rotateMagnitude: 0.1,
     actorCount: 7,
-    globalCompositeOperation: "source-over", // "lighter";
-    colorRange: 360 * pseudoRandomDecimal(),
-    colorHueShift: 360 * pseudoRandomDecimal(),
+    globalCompositeOperation: "source-over",
     actorStepDistance: 10,
     actorStepsPerFrame: 400,
     lineRadiusStart: 4,
@@ -212,7 +193,6 @@ const variances: number[] = [];
 for (let i = 0; i < options.actorCount; i++) {
   variances.push(pseudoRandomDecimal());
 }
-console.log(variances);
 
 function drawParticles(time: number) {
   ctx.globalCompositeOperation = options.globalCompositeOperation;
@@ -224,18 +204,6 @@ function drawParticles(time: number) {
   });
 }
 
-// Red+Blue shift colors
-// const colors = [
-//   [-4.5 * options.actorStepDistance, "red"],
-//   [-3 * options.actorStepDistance, "orange"],
-//   [-1.5 * options.actorStepDistance, "yellow"],
-//   [3 * options.actorStepDistance, "blue"],
-//   [2 * options.actorStepDistance, "#55f"],
-//   [1 * options.actorStepDistance, "#5ff"],
-//   [0, "#eee"],
-// ];
-
-// let alpha = 1;
 const colors: [number, string][] = [];
 for (
   let i = -options.actorStepsPerFrame / 2;
@@ -265,11 +233,7 @@ function drawParticle(
 
 let coverage = options.coverageStart;
 let radius = options.lineRadiusStart;
-function drawCircle(
-  time: number,
-  color: string,
-  variance: number = 2.23456789
-) {
+function drawCircle(time: number, color: string, variance: number) {
   ctx.beginPath();
   radius *= options.lineRadiusChangeRate;
   if (options.concentricLines) {
