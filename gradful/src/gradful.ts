@@ -5,9 +5,11 @@ let ctx: CanvasRenderingContext2D;
 
 let seed = Math.ceil(Math.random() * 100);
 let preset: number = 0;
+let preferAccuracyOverPerformance: boolean = false;
 
 interface OptionsObject {
   name: string;
+  forLoopParameters: [number, number, number];
   wiggleCharacter: (time: number, i: number) => WiggleParams;
 }
 
@@ -20,10 +22,11 @@ const renderSize = 2 ** 10;
 let options: OptionsObject;
 let hardTime = 0;
 const miliSecondsPerFrame = 1000 / 60;
-let frameNumber = 0;
+let frameNumber: number;
 let radius: number = canvasElement.width * 0.5;
 
 function startDrawing() {
+  frameNumber = 0;
   canvasElement.width = renderSize;
   canvasElement.height = renderSize;
   ctx = <CanvasRenderingContext2D>canvasElement.getContext("2d");
@@ -34,11 +37,12 @@ function startDrawing() {
     optionsPRDs.push(pseudoRandomDecimal());
   }
 
-  const artStyles = [
+  const artStyles: OptionsObject[] = [
     {
       name: "___gradful___",
+      forLoopParameters: [-100, canvasElement.width + 100, 4],
       wiggleCharacter(time: number, i: number) {
-        let hue = canvasElement.width * 0.0002507 * i + time * 0.05;
+        let hue = canvasElement.width * 0.0002507 * i - time * 0.016;
 
         let xPos =
           canvasElement.width / 2 +
@@ -51,14 +55,12 @@ function startDrawing() {
 
         let yPos =
           i +
-          Math.sin((time + i ** 1.32345) / 1000) * vDistance -
-          canvasElement.height * 1.3 +
-          Math.sin((time + i * 0.4231) / 1000) * vDistance -
-          canvasElement.height * 0.2;
+          Math.sin((time + i ** 1.32345) / 1000) * vDistance +
+          Math.sin((time + i * 0.4231) / 1000) * vDistance;
 
         let rad =
           canvasElement.width * 0.1 +
-          i * 0.01 +
+          i * 0.05 +
           (Math.sin((time * 0.5 + i * 1.1654) * 0.003412421) + 2) *
             radius *
             0.152453 -
@@ -110,9 +112,13 @@ function pseudoRandomDecimal() {
 }
 
 function draw(time: number = 0) {
-  frameNumber++;
+  if (preferAccuracyOverPerformance) {
+    frameNumber++;
+    hardTime = frameNumber * miliSecondsPerFrame;
+  } else {
+    hardTime = time;
+  }
   fillWithBlack();
-  hardTime = frameNumber * miliSecondsPerFrame;
   drawColumn(hardTime);
   window.requestAnimationFrame(draw);
 }
@@ -121,7 +127,8 @@ let hDistance = canvasElement.width * 0.5;
 let vDistance = canvasElement.width * 0.4;
 
 function drawColumn(time: number) {
-  for (let i = -canvasElement.width * 3; i < canvasElement.width * 3; i += 3) {
+  let [start, end, increment] = options.forLoopParameters;
+  for (let i = start; i < end; i += increment) {
     let { color, ellipseArguments } = options.wiggleCharacter(time, i);
     ctx.beginPath();
     ctx.fillStyle = color;
