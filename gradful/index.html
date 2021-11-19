@@ -13,6 +13,7 @@
       }
       body {
         display: flex;
+        flex-direction: column;
       }
       canvas {
         /* border: 10px solid #0003; */
@@ -31,12 +32,12 @@
       </script>
   </head>
   <body>
+    <canvas id="canvas" width="100" height="100" style="width: 90vmin; height: 90vmin;">Loading…</canvas>
     <div>
       <h1 id="artname">…</h1>
       <h2 id="seed">xxx</h2>
       <button id="download" onclick="downloadImage()">Download</button>
     </div>
-    <canvas id="canvas" width="100" height="100" style="width: 90vmin; height: 90vmin;">Loading…</canvas>
     <script defer type="module" src="./src/gradful.ts"></script>
   </body>
 </html>
