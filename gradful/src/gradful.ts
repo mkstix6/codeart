@@ -4,7 +4,7 @@ const canvasElement = <HTMLCanvasElement>document.getElementById("canvas");
 let ctx: CanvasRenderingContext2D;
 
 let seed = Math.ceil(Math.random() * 100);
-let preset: number = 0;
+let preset: number = 1;
 let preferAccuracyOverPerformance: boolean = false;
 
 interface OptionsObject {
@@ -39,7 +39,63 @@ function startDrawing() {
 
   const artStyles: OptionsObject[] = [
     {
-      name: "___gradful___",
+      name: "wigglyRandom",
+      forLoopParameters: [-100, canvasElement.width + 100, 4],
+      wiggleCharacter(time: number, i: number) {
+        let hue = canvasElement.width * 0.0002507 * i - time * 0.016;
+
+        let xPos =
+          canvasElement.width / 2 +
+          Math.sin((time * 0.14321 + i * 1.1523) * 0.003 * 2.62634) *
+            hDistance *
+            2.3 -
+          (Math.sin((time * 0.7343 + i * 2.3321) * 0.00952345) + 2) *
+            hDistance *
+            0.2;
+
+        let yPos =
+          i +
+          Math.sin((time + i ** 1.32345) / 1000) * vDistance +
+          Math.sin((time + i * 0.4231) / 1000) * vDistance;
+
+        let rad =
+          canvasElement.width * 0.1 +
+          i * 0.05 +
+          (Math.sin((time * 0.5 + i * 1.1654) * 0.003412421) + 2) *
+            radius *
+            0.152453 -
+          (Math.sin((time * 0.5 + i * 1.7321) * 0.00952345) + 2) *
+            radius *
+            0.1643;
+
+        let color: string = `hsl(${hue}, 85%, 55%)`;
+
+        let ellipseArguments: [
+          number,
+          number,
+          number,
+          number,
+          number,
+          number,
+          number
+        ] = [
+          xPos,
+          yPos,
+          rad,
+          rad + rad * 0.1 * Math.sin(time * 0.001234),
+          time * 0.000235,
+          0 + time * 0.001,
+          Math.PI * 2 + time * 0.001,
+        ];
+
+        return {
+          color,
+          ellipseArguments,
+        };
+      },
+    },
+    {
+      name: "wigglyPerfectLoop",
       forLoopParameters: [-100, canvasElement.width + 100, 4],
       wiggleCharacter(time: number, i: number) {
         let hue = canvasElement.width * 0.0002507 * i - time * 0.016;
