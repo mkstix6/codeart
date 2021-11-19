@@ -18,7 +18,7 @@ type WiggleParams = {
   ellipseArguments: [number, number, number, number, number, number, number];
 };
 
-const renderSize = 2 ** 10;
+const renderSize = 2 ** 9;
 let options: OptionsObject;
 let hardTime = 0;
 const miliSecondsPerFrame = 1000 / 60;
@@ -98,31 +98,39 @@ function startDrawing() {
       name: "wigglyPerfectLoop",
       forLoopParameters: [-100, canvasElement.width + 100, 4],
       wiggleCharacter(time: number, i: number) {
-        let hue = canvasElement.width * 0.0002507 * i - time * 0.016;
+        const fps = 60;
+        const loopDurationSeconds = 7;
+        const totalFrames = loopDurationSeconds * fps;
+        const totalLoopMiliSeconds = loopDurationSeconds * 1000;
+        const frameFraction = 1 / totalFrames;
+        const loopTime = time % totalLoopMiliSeconds;
+        const loopProgressDecimal = loopTime / totalLoopMiliSeconds;
+
+        let hue = loopProgressDecimal * 360 - i / 3;
 
         let xPos =
           canvasElement.width / 2 +
-          Math.sin((time * 0.14321 + i * 1.1523) * 0.003 * 2.62634) *
+          Math.sin(Math.PI * 2 * loopProgressDecimal * 2 + i * 0.02) *
             hDistance *
-            2.3 -
-          (Math.sin((time * 0.7343 + i * 2.3321) * 0.00952345) + 2) *
+            0.5 +
+          Math.cos(Math.PI * 2 * loopProgressDecimal * 3 + i * 0.02) *
             hDistance *
-            0.2;
+            0.25;
 
         let yPos =
           i +
-          Math.sin((time + i ** 1.32345) / 1000) * vDistance +
-          Math.sin((time + i * 0.4231) / 1000) * vDistance;
+          Math.cos(Math.PI * 2 * loopProgressDecimal + i * 0.02) *
+            vDistance *
+            0.5 +
+          Math.cos(Math.PI * 2 * loopProgressDecimal * 5 + i * 0.02) *
+            vDistance *
+            0.1;
 
         let rad =
-          canvasElement.width * 0.1 +
-          i * 0.05 +
-          (Math.sin((time * 0.5 + i * 1.1654) * 0.003412421) + 2) *
-            radius *
-            0.152453 -
-          (Math.sin((time * 0.5 + i * 1.7321) * 0.00952345) + 2) *
-            radius *
-            0.1643;
+          (Math.sin(Math.PI * 2 * loopProgressDecimal + i * 0.01) + 1.5) *
+            canvasElement.width *
+            0.05 +
+          i * 0.1;
 
         let color: string = `hsl(${hue}, 85%, 55%)`;
 
@@ -134,15 +142,7 @@ function startDrawing() {
           number,
           number,
           number
-        ] = [
-          xPos,
-          yPos,
-          rad,
-          rad + rad * 0.1 * Math.sin(time * 0.001234),
-          time * 0.000235,
-          0 + time * 0.001,
-          Math.PI * 2 + time * 0.001,
-        ];
+        ] = [xPos, yPos, rad, rad, 0, 0, Math.PI * 2];
 
         return {
           color,
