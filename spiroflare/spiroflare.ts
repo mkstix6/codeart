@@ -29,7 +29,7 @@ function startDrawing() {
 
   const artStyles = [
     {
-      name: "NeonFossils",
+      name: "NeonFossil",
       clearBetweenFrames: false,
       fadeAlpha: false,
       fadeAlphaRate: 0.001,
@@ -126,7 +126,7 @@ function startDrawing() {
       stopAtZeroWidth: true,
       concentricLines: false,
       coverageChange: 0.999997,
-      coverageStart: canvasElement.width * 0.73,
+      coverageStart: canvasElement.width * 0.7,
       rotateMagnitude: 0.007,
       actorCount: 7,
       globalCompositeOperation: "source-over",
