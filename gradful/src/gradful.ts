@@ -3,8 +3,9 @@ import { pseudoRandom } from "../utils";
 const canvasElement = <HTMLCanvasElement>document.getElementById("canvas");
 let ctx: CanvasRenderingContext2D;
 
+const renderSize = 2 ** 9;
 let seed = Math.ceil(Math.random() * 100);
-let preset: number = 1;
+let preset: number = 2;
 let preferAccuracyOverPerformance: boolean = false;
 
 interface OptionsObject {
@@ -18,7 +19,6 @@ type WiggleParams = {
   ellipseArguments: [number, number, number, number, number, number, number];
 };
 
-const renderSize = 2 ** 9;
 let options: OptionsObject;
 let hardTime = 0;
 const miliSecondsPerFrame = 1000 / 60;
@@ -133,6 +133,79 @@ function startDrawing() {
           i * 0.1;
 
         let color: string = `hsl(${hue}, 85%, 55%)`;
+
+        let ellipseArguments: [
+          number,
+          number,
+          number,
+          number,
+          number,
+          number,
+          number
+        ] = [xPos, yPos, rad, rad, 0, 0, Math.PI * 2];
+
+        return {
+          color,
+          ellipseArguments,
+        };
+      },
+    },
+    {
+      name: "wigglyChromieBlue",
+      forLoopParameters: [-100, canvasElement.width + 100, 2],
+      wiggleCharacter(time: number, i: number) {
+        const fps = 60;
+        const loopDurationSeconds = 7;
+        const totalFrames = loopDurationSeconds * fps;
+        const totalLoopMiliSeconds = loopDurationSeconds * 1000;
+        const frameFraction = 1 / totalFrames;
+        const loopTime = time % totalLoopMiliSeconds;
+        const loopProgressDecimal = loopTime / totalLoopMiliSeconds;
+
+        const hueRange = 75;
+        const hueShift = 170;
+
+        let hue: number =
+          hueShift +
+          hueRange *
+            (Math.sin(Math.PI * 2 * -loopProgressDecimal * 2 + i * 0.011) *
+              0.5 +
+              0.5);
+
+        let saturation: number =
+          70 + 30 * Math.sin(Math.PI * 2 * loopProgressDecimal * 2 + i * 0.001);
+
+        let lightness: number =
+          30 + 30 * Math.sin(Math.PI * 2 * loopProgressDecimal * 2 + i * 0.001);
+
+        saturation = 100;
+        lightness = 50;
+
+        let xPos =
+          canvasElement.width / 2 +
+          Math.sin(Math.PI * 2 * loopProgressDecimal * 2 + i * 0.02) *
+            hDistance *
+            0.5 +
+          Math.cos(Math.PI * 2 * loopProgressDecimal * 3 + i * 0.02) *
+            hDistance *
+            0.25;
+
+        let yPos =
+          i +
+          Math.cos(Math.PI * 2 * loopProgressDecimal + i * 0.02) *
+            vDistance *
+            0.5 +
+          Math.cos(Math.PI * 2 * loopProgressDecimal * 5 + i * 0.02) *
+            vDistance *
+            0.1;
+
+        let rad =
+          (Math.sin(Math.PI * 2 * loopProgressDecimal + i * 0.01) + 1.5) *
+            canvasElement.width *
+            0.05 +
+          i * 0.1;
+
+        let color: string = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
 
         let ellipseArguments: [
           number,
