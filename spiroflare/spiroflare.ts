@@ -134,7 +134,7 @@ function startDrawing() {
       colorHueShift: 360 * optionsPRDs[1],
       actorStepDistance: 10,
       actorStepsPerFrame: 400,
-      lineRadiusStart: 4,
+      lineRadiusStart: (4 * renderSize) / 2 ** 12,
       lineRadiusChangeRate: 1,
       arcPosition(time, coverage, variance): [number, number] {
         // prettier-ignore
