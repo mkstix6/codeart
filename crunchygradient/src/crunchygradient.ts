@@ -5,11 +5,13 @@ const TAU = Math.PI * 2;
 const canvasElement = <HTMLCanvasElement>document.getElementById("canvas");
 let ctx: CanvasRenderingContext2D;
 const debug: boolean = false;
+const drawTriangles: boolean = true;
 
 const renderSize = 2 ** 10;
 const renderWidth = renderSize;
 const renderHeight = renderSize;
-const pixelSize = 10;
+const pixelSize = 10; //Math.ceil(renderSize * 0.001);
+const posteriseSteps = 3;
 let bgColor = "#000";
 
 interface colorPoint {
@@ -64,12 +66,7 @@ const strongestProximities = (
 function draw(time: number = 0) {
   for (let i = 0; i < canvasElement.width; i += pixelSize) {
     for (let j = 0; j < canvasElement.height; j += pixelSize) {
-      let fuzzyI = Math.random() > 0.5 ? i - 5 : i + 5;
-      let fuzzyJ = Math.random() > 0.5 ? j - 5 : j + 5;
-      let proximities: colorProximities[] = colorPointProximities(
-        fuzzyI,
-        fuzzyJ
-      );
+      let proximities: colorProximities[] = colorPointProximities(i, j);
       let color: string = chooseColor(strongestProximities(proximities, 5));
       drawPixel(i, j, color, pixelSize);
     }
@@ -108,8 +105,24 @@ function chooseColor(proximities: colorProximities[]): string {
   let colorParts =
     Math.random() < breakPoint ? proximities[0].hsl : proximities[1].hsl;
 
+  // posteriseSteps > 2
+  let midpointColor = lerpArrays(proximities[0].hsl, proximities[1].hsl, 0.5);
+
   return hsl(...colorParts);
 }
+
+function lerpArrays(a, b, t) {
+  if (a.length !== b.length) {
+    throw new Error(`Array lengths must match`);
+  }
+  let newArray = [];
+  for (let index = 0; index < a.length; index++) {
+    newArray.push(lerp(a[index], b[index], t));
+  }
+  return newArray;
+}
+
+const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
 
 const hsl = (h: number, s: number, l: number): string =>
   `hsl(${h},${s}%,${l}%)`;
@@ -123,7 +136,7 @@ function colorPointProximities(
       (point.x - pixelX) ** 2 + (point.y - pixelY) ** 2
     );
     return {
-      proximity: proximity ** 2,
+      proximity: proximity ** 3,
       hsl: point.hsl,
     };
   });
@@ -138,7 +151,26 @@ function fillCanvas(color: string) {
 
 function drawPixel(x: number, y: number, color: string, size: number) {
   ctx.fillStyle = color;
-  ctx.fillRect(x, y, pixelSize, pixelSize);
+  ctx.strokeStyle = color;
+  // ctx.lineWidth = 1;
+  if (drawTriangles) {
+    ctx.beginPath();
+    if (Math.round(y / size) % 2) {
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + (size / 2) * 2, y);
+      ctx.lineTo(x + size / 2, y + size * 2);
+    } else {
+      ctx.moveTo(x, y - size);
+      ctx.lineTo(x + size / 2, y + size);
+      ctx.lineTo(x - size / 2, y + size);
+    }
+    ctx.closePath(); // automatically moves back to bottom left corner
+    ctx.fill();
+    // ctx.stroke();
+  } else {
+    ctx.fillRect(x, y, pixelSize, pixelSize);
+  }
+
   if (debug) {
     ctx.fillStyle = "white";
     ctx.fillRect(x, y, 1, 1);
