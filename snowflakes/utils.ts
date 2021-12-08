@@ -1,15 +1,22 @@
 export const pseudoRandomMax: number = 2147483647;
 
-export function* pseudoRandom(seed: number) {
+export function* pseudoRandom(seed: number, kind = "int") {
   // protect against zero
   if (seed === 0) {
     seed = pseudoRandomMax - 1;
   }
+
   let value: number = seed;
+  let formatted: number;
 
   while (true) {
     value = (value * 16807) % pseudoRandomMax;
-    yield value;
+    if (kind === "decimal") {
+      formatted = parseFloat(`0.${value.toString().slice(-5)}`);
+    } else {
+      formatted = value;
+    }
+    yield formatted;
   }
 }
 
