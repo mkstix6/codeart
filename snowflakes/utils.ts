@@ -1,6 +1,8 @@
 export const pseudoRandomMax: number = 2147483647;
 
 export function* pseudoRandom(seed: number, kind = "int") {
+  // Seed must be integer
+  seed = Math.floor(seed);
   // protect against zero
   if (seed === 0) {
     seed = pseudoRandomMax - 1;
