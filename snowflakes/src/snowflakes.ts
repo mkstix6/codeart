@@ -13,6 +13,25 @@ const bgColor = lightBlueColor;
 const canvas = <HTMLCanvasElement>document.getElementById("canvas");
 const ctx = <CanvasRenderingContext2D>canvas.getContext("2d");
 
+const renderSize = 1080; //2 ** 11;
+canvas.width = renderSize;
+canvas.height = renderSize;
+
+const artSpeedModifier = 0.6;
+
+const recordAndCaptureWEBM = false;
+const recordSeconds = 30;
+const recordFPS = 60;
+const recordDuration = recordSeconds * recordFPS;
+var capturer = new CCapture({
+  format: "webm",
+  framerate: recordFPS,
+  verbose: true,
+});
+if (recordAndCaptureWEBM) {
+  capturer.start();
+}
+
 class SnowFlake {
   seed: number = 0;
   pseudoRandomGen;
@@ -54,9 +73,9 @@ class SnowFlake {
   randomiseFlakeProperties() {
     this.backTrack = this.pseudoRandomGen.next().value * 0.9 + 0.1; // 0.55;
     this.centralPlateSize =
-      this.pseudoRandomGen.next().value * this.flakeDiameter * 0.5;
+      this.pseudoRandomGen.next().value * this.flakeDiameter * 0.3;
     this.centralPlateSize2 =
-      this.pseudoRandomGen.next().value * this.centralPlateSize;
+      this.pseudoRandomGen.next().value * this.centralPlateSize * 0.8;
     this.shortening = this.pseudoRandomGen.next().value * 0.9 + 0.1; // 0.62;
   }
   stepGrowHalfArmPoints(
@@ -245,8 +264,8 @@ class DriftOrchestrator {
     for (let i = 0; i < particleCount; i++) {
       let particle = {};
       // particle.shape = new ParticleClass(i + 1);
-      let minDiameter = 24;
-      let maxDiameter = 38;
+      let minDiameter = 40;
+      let maxDiameter = 100;
       let diameter = Math.random() * (maxDiameter - minDiameter) + minDiameter;
       particle.shape = new ParticleClass(
         Math.ceil(Math.random() * 9999),
@@ -310,30 +329,50 @@ class DriftOrchestrator {
   }
   particleGravity(particle) {
     particle.y +=
-      particle.gravityAdjust * 0.5 + 0.01 * Math.sin(particle.clock * 0.1);
+      particle.gravityAdjust * 0.5 * artSpeedModifier +
+      0.01 * Math.sin(particle.clock * artSpeedModifier * 0.1);
     if (particle.y > canvas.height + 40) particle.y = -40;
   }
   particleSway(particle) {
-    particle.x += 0.2 * Math.sin(particle.clock * 0.013);
+    particle.x +=
+      artSpeedModifier *
+      0.2 *
+      Math.sin(particle.clock * artSpeedModifier * 0.013);
   }
   bigWind(particle) {
-    particle.x += 0.3 * Math.sin(this.frame * 0.001);
+    particle.x += 0.3 * Math.sin(this.frame * artSpeedModifier * 0.004);
     // Teleport to other side if too far out of frame horizontally
     if (particle.x > canvas.width * 1.12) particle.x = -canvas.width * 0.1;
     if (particle.x < -canvas.width * 0.11) particle.x = canvas.width * 1.1;
   }
   particleRotate(particle) {
-    particle.rotate += particle.rotateSpeed * Math.sin(particle.clock * 0.001);
+    particle.rotate +=
+      particle.rotateSpeed *
+      Math.sin(artSpeedModifier * particle.clock * 0.001);
     // Change rotation speed slightly
   }
 }
 
 const animationContainer = new DriftOrchestrator(SnowFlake, numberOfFlakes);
 
+let frameCount = 0;
 function main() {
-  window.requestAnimationFrame(main);
+  frameCount++;
+  if (recordAndCaptureWEBM) {
+    if (frameCount < recordDuration + 10) {
+      window.requestAnimationFrame(main);
+    } else {
+      capturer.stop();
+      capturer.save();
+    }
+  } else {
+    window.requestAnimationFrame(main);
+  }
   fillCanvas(bgColor);
   animationContainer.draw();
+  if (recordAndCaptureWEBM) {
+    capturer.capture(canvas);
+  }
 }
 main();
 
