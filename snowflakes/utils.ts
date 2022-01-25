@@ -18,7 +18,7 @@ export function* pseudoRandom(seed: number, kind = "int") {
     } else {
       formatted = value;
     }
-    yield formatted;
+    yield <number>formatted;
   }
 }
 
