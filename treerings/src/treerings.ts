@@ -1,3 +1,16 @@
+import { pseudoRandom } from "../utils";
+let seed = Math.ceil(Math.random() * 1000);
+const name = "TreeRings-001";
+
+let generator = pseudoRandom(seed);
+function pseudoRandomDecimal() {
+  return parseFloat(`0.${generator.next().value.toString().slice(-5)}`);
+}
+
+// Populate art info into page
+document.getElementById("seed").innerHTML = `${seed}`;
+document.getElementById("artname").innerHTML = `${name}`;
+
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
@@ -10,20 +23,20 @@ function resizeCanvas(size = renderSize) {
 
 const TAU = Math.PI * 2;
 const numPoints = 260;
-const wigglynessfactor = Math.random() * 4;
-const smoothFactor = Math.random() * 5 + 1;
-const barkWidthModifier = Math.random() * 0.04 + 0.02;
-const barkRoughness = Math.random();
-const barkColor = Math.random() > 0.5 ? "white" : "black"; //`hsl(${hue + 130}, 60%, 38%)`;
+const wigglynessfactor = pseudoRandomDecimal() * 4;
+const smoothFactor = pseudoRandomDecimal() * 5 + 1;
+const barkWidthModifier = pseudoRandomDecimal() * 0.04 + 0.02;
+const barkRoughness = pseudoRandomDecimal();
+const barkColor = pseudoRandomDecimal() > 0.5 ? "white" : "black"; //`hsl(${hue + 130}, 60%, 38%)`;
 const centerX = renderSize / 2;
 const centerY = renderSize / 2;
-const hue = Math.round(Math.random() * 360);
+const hue = Math.round(pseudoRandomDecimal() * 360);
 const linecolor = `hsl(${hue}, 50%, 45%)`; // "#0003"; // "#200704"
-const ringCount = 50 * Math.random() + 50;
+const ringCount = 80 * pseudoRandomDecimal() + 40;
 const rings = [];
 const points = new Array(numPoints).fill([centerX, centerY]);
 const bigStepCadence = Math.ceil(
-  Math.random() * renderSize * 0.01 + renderSize * 0.001
+  pseudoRandomDecimal() * renderSize * 0.01 + renderSize * 0.001
 );
 
 function fillCanvasBackground() {
@@ -36,7 +49,7 @@ function expandPoints(growth, ringnumber = 0) {
     let [x, y] = coordinates;
     const degree = ((i * 360) / numPoints / 360) * TAU;
     let randomJiggleDistance =
-      (Math.random() - 0.5) * wigglynessfactor * ringnumber * 0.05;
+      (pseudoRandomDecimal() - 0.5) * wigglynessfactor * ringnumber * 0.05;
 
     x = x + Math.round(Math.sin(degree) * (growth + randomJiggleDistance));
     y = y + Math.round(Math.cos(degree) * (growth + randomJiggleDistance));
@@ -103,7 +116,7 @@ function smoothPoints() {
 // Construct ring points
 function constructRingPoints() {
   let expandDistance = renderSize * 0.008;
-  const minExpand = (1 / ringCount) * 300;
+  const minExpand = (1 / ringCount) * 400;
   for (let i = 0; i < ringCount; i++) {
     expandPoints(expandDistance, i);
     smoothPoints();
@@ -139,7 +152,7 @@ function drawSeparatorRings() {
 function drawBarkRing() {
   let barkRing = rings[rings.length - 1];
   for (let i = 0; i < barkRing.length; i) {
-    let barkStep = Math.round(Math.random() * 10) + 5;
+    let barkStep = Math.round(pseudoRandomDecimal() * 10) + 5;
     let j = i + barkStep + 2;
     j = j > barkRing.length - 1 ? 0 : j;
     ctx.beginPath();
@@ -148,7 +161,7 @@ function drawBarkRing() {
     ctx.closePath();
     ctx.strokeStyle = barkColor;
     ctx.lineWidth =
-      Math.random() * renderSize * barkWidthModifier * barkRoughness +
+      pseudoRandomDecimal() * renderSize * barkWidthModifier * barkRoughness +
       renderSize * barkWidthModifier;
     ctx.stroke();
     i += barkStep;
