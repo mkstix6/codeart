@@ -2,31 +2,42 @@ const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
 const renderSize = 2 ** 10;
-canvas.width = renderSize;
-canvas.height = renderSize;
+
+function resizeCanvas(size = renderSize) {
+  canvas.width = size;
+  canvas.height = size;
+}
 
 const TAU = Math.PI * 2;
 const numPoints = 260;
-const wigglynessfactor = Math.random() * 16;
-const smoothFactor = Math.random() * 10;
+const wigglynessfactor = Math.random() * 4;
+const smoothFactor = Math.random() * 5 + 1;
+const barkWidthModifier = Math.random() * 0.04 + 0.02;
 const barkRoughness = Math.random();
 const barkColor = Math.random() > 0.5 ? "white" : "black"; //`hsl(${hue + 130}, 60%, 38%)`;
 const centerX = renderSize / 2;
 const centerY = renderSize / 2;
 const hue = Math.round(Math.random() * 360);
 const linecolor = `hsl(${hue}, 50%, 45%)`; // "#0003"; // "#200704"
-const ringCount = 42;
+const ringCount = 50 * Math.random() + 50;
 const rings = [];
 const points = new Array(numPoints).fill([centerX, centerY]);
+const bigStepCadence = Math.ceil(
+  Math.random() * renderSize * 0.01 + renderSize * 0.001
+);
 
-ctx.fillStyle = `hsl(${hue + 130}, 40%, 50%)`;
-ctx.fillRect(0, 0, renderSize, renderSize);
+function fillCanvasBackground() {
+  ctx.fillStyle = `hsl(${hue + 130}, 40%, 50%)`;
+  ctx.fillRect(0, 0, renderSize, renderSize);
+}
 
 function expandPoints(growth, ringnumber = 0) {
   points.forEach((coordinates, i) => {
     let [x, y] = coordinates;
     const degree = ((i * 360) / numPoints / 360) * TAU;
-    let randomJiggleDistance = (Math.random() - 0.5) * wigglynessfactor;
+    let randomJiggleDistance =
+      (Math.random() - 0.5) * wigglynessfactor * ringnumber * 0.05;
+
     x = x + Math.round(Math.sin(degree) * (growth + randomJiggleDistance));
     y = y + Math.round(Math.cos(degree) * (growth + randomJiggleDistance));
     // Split
@@ -62,6 +73,7 @@ function fillTreeRing(ringCoordinates, lightness) {
   ctx.fill();
 }
 
+// FIXME this causes 4 corner inaccuracies plainly visible when heavily smoothing at the NE NW SE SW positions
 function smoothPoints() {
   for (let i = 0; i < points.length; i++) {
     let h = i - 1;
@@ -89,23 +101,25 @@ function smoothPoints() {
 }
 
 // Construct ring points
-let expandDistance = renderSize * 0.015;
-const minExpand = 3;
-for (let i = 0; i < 40; i++) {
-  expandPoints(expandDistance, i);
-  smoothPoints();
-  // Reduce expand distance after the first few steps
-  expandDistance -= 0.25;
-  if (expandDistance < minExpand) {
-    expandDistance = minExpand;
+function constructRingPoints() {
+  let expandDistance = renderSize * 0.008;
+  const minExpand = (1 / ringCount) * 300;
+  for (let i = 0; i < ringCount; i++) {
+    expandPoints(expandDistance, i);
+    smoothPoints();
+    // Reduce expand distance after the first few steps
+    expandDistance -= 0.25;
+    if (expandDistance < minExpand) {
+      expandDistance = minExpand;
+    }
+    //
+    rings.push(JSON.parse(JSON.stringify(points)));
   }
-  //
-  rings.push(JSON.parse(JSON.stringify(points)));
 }
 
 // Fill on occasion
 function drawTreeFills() {
-  for (let i = rings.length - 1; i >= 0; i -= Math.ceil(renderSize * 0.005)) {
+  for (let i = rings.length - 1; i >= 0; i -= bigStepCadence) {
     let lightness = (i / rings.length) * 50;
     let thisRing = rings[i];
     fillTreeRing(thisRing, 50 + lightness);
@@ -114,15 +128,14 @@ function drawTreeFills() {
 
 // Darker rings
 function drawSeparatorRings() {
-  for (let i = rings.length - 1; i >= 0; i -= Math.ceil(renderSize * 0.005)) {
+  for (let i = rings.length - 1; i >= 0; i -= bigStepCadence) {
     let thisRing = rings[i];
     let color = `hsl(${hue}, 50%, 45%)`;
-    drawRingStroke(thisRing, 3, color);
+    drawRingStroke(thisRing, 2, color);
   }
 }
 
 // Bark
-// drawRingStroke(rings[rings.length - 1], 10, "hsl(${hue}, 50%, 48%)");
 function drawBarkRing() {
   let barkRing = rings[rings.length - 1];
   for (let i = 0; i < barkRing.length; i) {
@@ -135,7 +148,8 @@ function drawBarkRing() {
     ctx.closePath();
     ctx.strokeStyle = barkColor;
     ctx.lineWidth =
-      Math.random() * renderSize * 0.05 * barkRoughness + renderSize * 0.05;
+      Math.random() * renderSize * barkWidthModifier * barkRoughness +
+      renderSize * barkWidthModifier;
     ctx.stroke();
     i += barkStep;
   }
@@ -145,13 +159,16 @@ function drawAllRings() {
   for (let i = 0; i < rings.length; i++) {
     let thisRing = rings[i];
     let color = `hsl(${hue}, 50%, 45%)`;
-    let width = Math.ceil(renderSize * 0.001);
-    drawRingStroke(thisRing, width, color);
+    // let width = Math.ceil(renderSize * 0.001);
+    drawRingStroke(thisRing, 0.5, color);
   }
 }
 
+resizeCanvas();
+fillCanvasBackground();
+constructRingPoints();
 drawTreeFills();
-drawSeparatorRings();
 drawBarkRing();
+drawSeparatorRings();
 drawAllRings();
 // Draw
