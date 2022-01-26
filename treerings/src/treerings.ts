@@ -32,7 +32,7 @@ const centerX = renderSize / 2;
 const centerY = renderSize / 2;
 const hue = Math.round(pseudoRandomDecimal() * 360);
 const linecolor = `hsl(${hue}, 50%, 45%)`; // "#0003"; // "#200704"
-const ringCount = 150;
+const ringCount = 200;
 const rings = [];
 const points = new Array(numPoints).fill([centerX, centerY]);
 const bigStepCadence = Math.ceil(
@@ -53,8 +53,12 @@ function expandPoints(growth, ringnumber = 0) {
     let randomJiggleDistance =
       (pseudoRandomDecimal() - 0.5) * wigglynessfactor * ringnumber * 0.05;
 
-    x = x + Math.sin(degree) * (growth + randomJiggleDistance);
-    y = y + Math.cos(degree) * (growth + randomJiggleDistance);
+    let dx = growth + randomJiggleDistance;
+    let dy = growth + randomJiggleDistance;
+    if (dx < 1) dx = 1;
+    if (dy < 1) dy = 1;
+    x = x + Math.sin(degree) * dx;
+    y = y + Math.cos(degree) * dy;
 
     points[i] = [x, y];
   });
@@ -121,7 +125,14 @@ function constructRingPoints() {
       expandDistance = minExpand;
     }
     //
-    rings.push(JSON.parse(JSON.stringify(points)));
+    let ringPastLargestSize = points.some((coords) => {
+      return coords[0] > renderSize * 0.92;
+    });
+    if (ringPastLargestSize) {
+      break;
+    } else {
+      rings.push(JSON.parse(JSON.stringify(points)));
+    }
   }
 }
 
@@ -170,7 +181,7 @@ function drawBarkRing(ringEdge = 10) {
     ctx.lineTo(Math.round(barkRing[j][0]), Math.round(barkRing[j][1]));
     ctx.closePath();
     ctx.strokeStyle = barkColor;
-    ctx.lineWidth = (barkThicknesses[i] * ringEdge) / ringCount;
+    ctx.lineWidth = (barkThicknesses[i] * ringEdge) / rings.length;
     ctx.stroke();
     i += barkStep;
   }
@@ -201,7 +212,7 @@ function draw(time = 0) {
   drawBarkRing(ringCounter);
   drawSeparatorRings(ringCounter);
   drawAllRings(ringCounter);
-  if (ringCounter < ringCount - 1) {
+  if (ringCounter < rings.length - 1) {
     window.requestAnimationFrame(draw);
   }
 }
