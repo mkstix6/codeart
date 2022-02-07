@@ -30,7 +30,6 @@ function clearCanvas() {
   ctx.globalCompositeOperation = "source-over";
   ctx.fillStyle = "#fff";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.globalCompositeOperation = "multiply";
 }
 
 // Prepare triangle data
@@ -52,14 +51,14 @@ const trianglesData = gridCoordinates.map((position, index) => {
   return triangle;
 });
 
-// Draw triangle
 function drawArtwork(t = 0) {
   clearCanvas();
+  ctx.globalCompositeOperation = "multiply";
   trianglesData.forEach(drawTriangle);
   window.requestAnimationFrame(drawArtwork);
 }
 
-/// the main function
+// Start the art
 drawArtwork();
 
 function drawTriangle(triangle, tIndex) {
@@ -134,6 +133,34 @@ function handleInteraction(e) {
   mouseY = y;
 }
 
+function getMousePos(canvas, e) {
+  let x;
+  let y;
+  if (
+    e.type == "touchstart" ||
+    e.type == "touchmove" ||
+    e.type == "touchend" ||
+    e.type == "touchcancel"
+  ) {
+    x = e.pageX;
+    y = e.pageY;
+  } else if (
+    e.type == "mousedown" ||
+    e.type == "mouseup" ||
+    e.type == "mousemove" ||
+    e.type == "mouseover" ||
+    e.type == "mouseout" ||
+    e.type == "mouseenter" ||
+    e.type == "mouseleave"
+  ) {
+    const rect = canvas.getBoundingClientRect();
+    // subtract the element's left and top position
+    x = e.clientX - rect.left;
+    y = e.clientY - rect.top;
+  }
+  return { x, y };
+}
+
 function gridPoints(gridSeparation = 64, type = "square") {
   // type 'square', 'isometric'
   const coordinates = [];
@@ -157,39 +184,6 @@ function gridPoints(gridSeparation = 64, type = "square") {
   }
 
   return coordinates;
-}
-
-function getMousePos(canvas, e) {
-  let x;
-  let y;
-  if (
-    e.type == "touchstart" ||
-    e.type == "touchmove" ||
-    e.type == "touchend" ||
-    e.type == "touchcancel"
-  ) {
-    // const touch = e?.originalEvent?.touches[0] || e?.originalEvent?.changedTouches[0];
-    x = e.pageX;
-    y = e.pageY;
-  } else if (
-    e.type == "mousedown" ||
-    e.type == "mouseup" ||
-    e.type == "mousemove" ||
-    e.type == "mouseover" ||
-    e.type == "mouseout" ||
-    e.type == "mouseenter" ||
-    e.type == "mouseleave"
-  ) {
-    /// getBoundingClientRect is supported in most browsers and gives you
-    /// the absolute geometry of an element
-    const rect = canvas.getBoundingClientRect();
-    /// as mouse event coords are relative to document you need to
-    /// subtract the element's left and top position:
-    x = e.clientX - rect.left;
-    y = e.clientY - rect.top;
-  }
-
-  return { x, y };
 }
 
 // Unused but useful and reference
