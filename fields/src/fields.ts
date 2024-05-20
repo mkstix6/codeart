@@ -19,8 +19,11 @@ const recordDuration = loopsRecord * loopTime;
 let cutTime = loopTime * 0.5;
 const doCut = false;
 const doGrow = false;
+const doCapture = false;
 
-var capturer = new CCapture({ format: "webm", framerate: 60, verbose: false });
+var capturer = doCapture
+  ? new CCapture({ format: "webm", framerate: 60, verbose: false })
+  : null;
 
 interface OptionsObject {
   name: string;
@@ -70,7 +73,9 @@ function startDrawing() {
 
   // Start
   fillCanvas(bgColor);
-  capturer.start();
+  if (doCapture) {
+    capturer.start();
+  }
   draw();
 }
 
@@ -80,11 +85,15 @@ function pseudoRandomDecimal() {
 }
 
 function draw(time: number = 0) {
-  if (time < recordDuration + 100) {
-    window.requestAnimationFrame(draw);
+  if (doCapture) {
+    if (time < recordDuration + 100) {
+      window.requestAnimationFrame(draw);
+    } else if (doCapture) {
+      capturer.stop();
+      capturer.save();
+    }
   } else {
-    capturer.stop();
-    capturer.save();
+    window.requestAnimationFrame(draw);
   }
 
   // if (preferAccuracyOverPerformance) {
@@ -96,7 +105,9 @@ function draw(time: number = 0) {
 
   fillCanvas(bgColor);
   drawField(time);
-  capturer.capture(canvasElement);
+  if (doCapture) {
+    capturer.capture(canvasElement);
+  }
 }
 
 function drawCustomLine(color: string, tipX: number, tipY: number) {
