@@ -75,17 +75,15 @@ export function flowers() {
         petalColor,
       };
     };
-    const petals = Array(petalCount)
-      .fill({})
-      .map((petal) => {
-        return createPetal(
-          <HSLValues>(
-            petalColor.map(
-              (value, i) => value + (Math.random() * 2 - 1) * colorTolerence[i]
-            )
+    const petals = Array.from({ length: petalCount }, (petal) =>
+      createPetal(
+        <HSLValues>(
+          petalColor.map(
+            (value, i) => value + (Math.random() * 2 - 1) * colorTolerence[i]
           )
-        );
-      });
+        )
+      )
+    );
     return {
       age: Math.random() * lifetime,
       centreColor,
@@ -241,15 +239,12 @@ export function flowers() {
     });
   };
 
-  const cloverGrid = Array(2000)
-    .fill({})
-    .map((_cell) => {
-      return CreateCuteCirclyFlower({
-        ...getCloverVariantConfig(),
-        colorTolerence: [0, 0, 0],
-      });
+  const cloverGrid = Array.from({ length: 2000 }, (_cell) =>
+    CreateCuteCirclyFlower({
+      ...getCloverVariantConfig(),
+      colorTolerence: [0, 0, 0],
     })
-    .sort((cloverA, cloverB) => cloverA.petalColor[2] - cloverB.petalColor[2]);
+  ).sort((cloverA, cloverB) => cloverA.petalColor[2] - cloverB.petalColor[2]);
 
   const cloverDrawList = [...cloverGrid];
   const flowerDrawList = [];
