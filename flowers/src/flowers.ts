@@ -5,10 +5,11 @@ type LIFESTATUS = "growing" | "dying" | "dead" | "dormant";
 
 interface CuteCirclyFlower {
   age: number;
-  centreColor: string;
-  draw?: () => void;
-  entityRotater?: (point: Coordinates) => Coordinates;
-  grow?: () => void;
+  centreColor: string | null;
+  colorTolerence: HSLValues;
+  draw: () => void;
+  entityRotater: (point: Coordinates) => Coordinates;
+  grow: () => void;
   growthSpeed: number;
   lifeStatus: LIFESTATUS;
   lifetime: number;
@@ -18,6 +19,7 @@ interface CuteCirclyFlower {
   petalCount: number;
   petalDistance: number;
   petalDistanceOG: number;
+  petals: { petalColor: HSLValues }[];
   petalSize: number;
   rotation: number;
   rotationSpeed: number;
@@ -50,23 +52,24 @@ export function flowers() {
   clearCanvas();
 
   const CreateCuteCirclyFlower = ({
+    age = 0,
+    centreColor = "white",
+    colorTolerence = [3, 4, 4],
+    growthSpeed = canvasSize * 0.01,
+    lifeStatus = "growing" as "growing",
+    lifetime = 500,
+    maxSize = Infinity,
     origin = [0, 0],
+    petalColor = [0, 73, 89],
+    petalCount = 5,
+    petalDistance = 1,
+    petalDistanceOG = 1,
+    petalSize = 1,
     rotation = 0,
     rotationSpeed = 0,
     size = 0,
-    maxSize = Infinity,
-    growthSpeed = canvasSize * 0.01,
-    petalColor = <HSLValues>[0, 73, 89],
-    centreColor = "white",
-    petalCount = 5,
-    petalSize = 1,
-    lifetime = 500,
-    petalDistance = 1,
-    age = 0,
-    lifeStatus = "growing",
-    colorTolerence = <HSLValues>[3, 4, 4],
     structureTolerence = 0,
-  }): CuteCirclyFlower => {
+  }: Partial<CuteCirclyFlower>): CuteCirclyFlower => {
     const createPetal = (petalColor: HSLValues) => {
       return {
         petalColor,
@@ -84,21 +87,24 @@ export function flowers() {
         );
       });
     return {
+      age: Math.random() * lifetime,
+      centreColor,
+      colorTolerence,
+      entityRotater: makeEntityPointRotator(origin, 0),
+      growthSpeed,
+      lifeStatus,
+      lifetime,
+      maxSize,
       origin: [origin[0], origin[1]],
+      petalColor,
+      petalCount,
+      petalDistance,
+      petalDistanceOG,
+      petals,
+      petalSize,
       rotation,
       rotationSpeed,
       size,
-      maxSize,
-      growthSpeed,
-      centreColor,
-      petals,
-      petalColor,
-      petalDistance,
-      petalSize,
-      lifetime,
-      age: Math.random() * lifetime,
-      lifeStatus,
-      colorTolerence,
       structureTolerence,
       grow() {
         if (!this.petalDistanceOG) {
@@ -138,10 +144,7 @@ export function flowers() {
         }
       },
       draw() {
-        this.entityRotater = makeEntityPointRotator(
-          <Coordinates>this.origin,
-          this.rotation
-        );
+        this.entityRotater = makeEntityPointRotator(this.origin, this.rotation);
 
         this.grow();
 
@@ -170,26 +173,38 @@ export function flowers() {
     };
   };
 
-  const getCloverVariantConfig = (i: number): CuteCirclyFlower => {
+  const getCloverVariantConfig = (): Omit<
+    CuteCirclyFlower,
+    | "draw"
+    | "grow"
+    | "age"
+    | "entityRotater"
+    | "lifeStatus"
+    | "petals"
+    | "petalSize"
+  > => {
     let gridSpacing = 50;
     let tolerance = gridSpacing / 2;
 
     return {
-      origin: [Math.random() * canvasSize, Math.random() * canvasSize],
-      rotation: Math.floor(360 * Math.random()),
-      rotationSpeed: 0.2 * (Math.random() - 0.5),
-      size: 0,
-      maxSize: canvasSize * 0.02,
+      centreColor: null,
+      colorTolerence: [0, 0, 0],
       growthSpeed: canvasSize * 0.00005 + 0.01 * Math.random(),
+      lifetime: Infinity,
+      maxSize: canvasSize * 0.02,
+      origin: [Math.random() * canvasSize, Math.random() * canvasSize],
       petalColor: [
         cloverGreenHue,
         Math.random() * 10 + 40,
         (Math.ceil(Math.random() * 5) + 5) * Math.ceil(Math.random() * 3),
       ],
-      centreColor: null,
       petalCount: Math.random() > 0.9 ? 4 : 3,
+      petalDistance: 1,
+      petalDistanceOG: 1,
+      rotation: Math.floor(360 * Math.random()),
+      rotationSpeed: 0.2 * (Math.random() - 0.5),
+      size: 0,
       structureTolerence: 10,
-      lifetime: Infinity,
     };
   };
 
@@ -199,7 +214,7 @@ export function flowers() {
   }: {
     petalHue: number;
     maxSize: number;
-  }): (() => CuteCirclyFlower) => {
+  }): (() => Partial<CuteCirclyFlower>) => {
     const baseLifetime = Math.random() * 2000 + 300;
 
     const speciesFeatures = {
@@ -228,9 +243,9 @@ export function flowers() {
 
   const cloverGrid = Array(2000)
     .fill({})
-    .map((_cell, i) => {
+    .map((_cell) => {
       return CreateCuteCirclyFlower({
-        ...getCloverVariantConfig(i),
+        ...getCloverVariantConfig(),
         colorTolerence: [0, 0, 0],
       });
     })
