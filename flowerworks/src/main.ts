@@ -4,7 +4,7 @@
  */
 
 import "./style.css";
-import { flowers } from "./flowers.ts";
+import { flowers } from "./flowerworks.ts";
 
 document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
   <div>

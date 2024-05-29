@@ -33,10 +33,12 @@ export function flowers() {
   const TAU = Math.PI * 2;
   // Prepare canvas
   const canvas = <HTMLCanvasElement>document.getElementById("canvas");
-  const canvasSize = 2 ** 9;
+  const canvasSize = 2 ** 10;
   canvas.width = canvasSize;
   canvas.height = canvasSize;
-  const ctx = <CanvasRenderingContext2D>canvas.getContext("2d");
+  const ctx = <CanvasRenderingContext2D>(
+    canvas.getContext("2d", { colorSpace: "display-p3" })
+  );
   const bgGradient = ctx.createLinearGradient(0, 0, 0, canvasSize);
   const cloverGreenHue = 136;
   // Add three color stops
