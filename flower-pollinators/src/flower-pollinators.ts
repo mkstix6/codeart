@@ -251,7 +251,7 @@ export function flowers() {
     return () => ({
       origin: [Math.random() * canvasSize, Math.random() * canvasSize],
       rotation: Math.floor(360 * Math.random()),
-      rotationSpeed: numberJitter(0.5, 0.5),
+      rotationSpeed: numberJitter(0, 0.5),
       size: 0,
       maxSize, //canvasSize * (0.03 * Math.random() ** 2 + 0.01),
       growthSpeed: canvasSize * (0.0001 * Math.random()),
