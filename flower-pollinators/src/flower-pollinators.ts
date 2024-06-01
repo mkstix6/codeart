@@ -255,7 +255,7 @@ export function flowers() {
       size: 0,
       maxSize, //canvasSize * (0.03 * Math.random() ** 2 + 0.01),
       growthSpeed: canvasSize * (0.0001 * Math.random()),
-      colorTolerence: { l: 5, c: 0.01, h: 5 },
+      colorTolerence: { l: 3, c: 0.01, h: 3 },
       petalColor: {
         l: 75,
         c: 0.2,
