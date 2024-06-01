@@ -1,12 +1,12 @@
 type Coordinates = [number, number];
-type HSLValues = [number, number, number];
+type LCHValues = { l: number; c: number; h: number };
 
 type LIFESTATUS = "growing" | "dying" | "dead" | "dormant";
 
 interface CuteCirclyFlower {
   age: number;
   centreColor: string | null;
-  colorTolerence: HSLValues;
+  colorTolerence: LCHValues;
   draw: () => void;
   entityRotater: (point: Coordinates) => Coordinates;
   grow: () => void;
@@ -15,11 +15,11 @@ interface CuteCirclyFlower {
   lifetime: number;
   maxSize: number;
   origin: Coordinates;
-  petalColor: HSLValues;
+  petalColor: LCHValues;
   petalCount: number;
   petalDistance: number;
   petalDistanceOG: number;
-  petals: { petalColor: HSLValues }[];
+  petals: { petalColor: LCHValues }[];
   petalSize: number;
   rotation: number;
   rotationSpeed: number;
@@ -27,23 +27,33 @@ interface CuteCirclyFlower {
   structureTolerence: number;
 }
 
-const formatHSLColor = ([h, s, l]: HSLValues): string => `hsl(${h} ${s} ${l})`;
+const formatOKLCHColor = ({
+  l: luminosity,
+  c: chroma,
+  h: hue,
+}: LCHValues): string => `oklch(${luminosity}% ${chroma} ${hue})`;
 
 export function flowers() {
   const TAU = Math.PI * 2;
   // Prepare canvas
   const canvas = <HTMLCanvasElement>document.getElementById("canvas");
-  const canvasSize = 2 ** 10;
+  const canvasSize = 2 ** 9;
   canvas.width = canvasSize;
   canvas.height = canvasSize;
   const ctx = <CanvasRenderingContext2D>(
     canvas.getContext("2d", { colorSpace: "display-p3" })
   );
   const bgGradient = ctx.createLinearGradient(0, 0, 0, canvasSize);
-  const cloverGreenHue = 136;
+  const cloverGreenHue = 148;
   // Add three color stops
-  bgGradient.addColorStop(0, `hsl(${cloverGreenHue} 10 15`);
-  bgGradient.addColorStop(1, `hsl(${cloverGreenHue} 10 10`);
+  bgGradient.addColorStop(
+    0,
+    formatOKLCHColor({ l: 15, c: 0.5, h: cloverGreenHue })
+  );
+  bgGradient.addColorStop(
+    1,
+    formatOKLCHColor({ l: 10, c: 0.5, h: cloverGreenHue })
+  );
 
   // Fill canvas
   function clearCanvas() {
@@ -53,16 +63,27 @@ export function flowers() {
 
   clearCanvas();
 
+  const numberJitter = (value: number, tolerance: number) =>
+    value + tolerance * (Math.random() * 2 - 1);
+
+  function colorJitter(color: LCHValues, tolerance: LCHValues) {
+    return {
+      l: numberJitter(color.l, tolerance.l),
+      c: numberJitter(color.c, tolerance.c),
+      h: numberJitter(color.h, tolerance.h),
+    };
+  }
+
   const CreateCuteCirclyFlower = ({
     age = 0,
     centreColor = "white",
-    colorTolerence = [3, 4, 4],
+    colorTolerence = { l: 0, c: 0, h: 0 },
     growthSpeed = canvasSize * 0.01,
     lifeStatus = "growing" as "growing",
     lifetime = 500,
     maxSize = Infinity,
     origin = [0, 0],
-    petalColor = [0, 73, 89],
+    petalColor = { l: 73, c: 3, h: 89 },
     petalCount = 5,
     petalDistance = 1,
     petalDistanceOG = 1,
@@ -72,19 +93,13 @@ export function flowers() {
     size = 0,
     structureTolerence = 0,
   }: Partial<CuteCirclyFlower>): CuteCirclyFlower => {
-    const createPetal = (petalColor: HSLValues) => {
+    const createPetal = (petalColor: LCHValues) => {
       return {
         petalColor,
       };
     };
     const petals = Array.from({ length: petalCount }, (petal) =>
-      createPetal(
-        <HSLValues>(
-          petalColor.map(
-            (value, i) => value + (Math.random() * 2 - 1) * colorTolerence[i]
-          )
-        )
-      )
+      createPetal(colorJitter(petalColor, colorTolerence))
     );
     return {
       age: Math.random() * lifetime,
@@ -149,7 +164,7 @@ export function flowers() {
         this.grow();
 
         for (let i = 0; i < petalCount; i++) {
-          ctx.fillStyle = formatHSLColor(petals[i].petalColor);
+          ctx.fillStyle = formatOKLCHColor(petals[i].petalColor);
           const petalCoordinates: Coordinates = [
             origin[0] + this.size * this.petalDistance,
             origin[1],
@@ -188,21 +203,25 @@ export function flowers() {
 
     return {
       centreColor: null,
-      colorTolerence: [0, 0, 0],
+      colorTolerence: { l: 0, c: 0, h: 1 },
+
       growthSpeed: canvasSize * 0.00005 + 0.01 * Math.random(),
       lifetime: Infinity,
       maxSize: canvasSize * 0.02,
       origin: [Math.random() * canvasSize, Math.random() * canvasSize],
-      petalColor: [
-        cloverGreenHue,
-        Math.random() * 10 + 40,
-        (Math.ceil(Math.random() * 5) + 5) * Math.ceil(Math.random() * 3),
-      ],
+      petalColor: {
+        l:
+          (Math.ceil(Math.random() * 5) + 5) *
+          Math.ceil(Math.random() * 3) *
+          1.7,
+        c: 0.12,
+        h: cloverGreenHue,
+      },
       petalCount: Math.random() > 0.9 ? 4 : 3,
       petalDistance: 1,
       petalDistanceOG: 1,
       rotation: Math.floor(360 * Math.random()),
-      rotationSpeed: 0.2 * (Math.random() - 0.5),
+      rotationSpeed: numberJitter(0.2, 0.5),
       size: 0,
       structureTolerence: 10,
     };
@@ -228,11 +247,16 @@ export function flowers() {
     return () => ({
       origin: [Math.random() * canvasSize, Math.random() * canvasSize],
       rotation: Math.floor(360 * Math.random()),
-      rotationSpeed: 0.5 * (Math.random() - 0.5),
+      rotationSpeed: numberJitter(0.5, 0.5),
       size: 0,
       maxSize, //canvasSize * (0.03 * Math.random() ** 2 + 0.01),
       growthSpeed: canvasSize * (0.0001 * Math.random()),
-      petalColor: [petalHue, Math.random() * 10 + 70, Math.random() * 10 + 60],
+      colorTolerence: { l: 5, c: 0.01, h: 5 },
+      petalColor: {
+        l: 75,
+        c: 0.2,
+        h: petalHue,
+      },
       lifetime: baseLifetime + baseLifetime * 0.1 * Math.random(),
       lifeStatus: "growing",
       age: 0,
@@ -244,9 +268,8 @@ export function flowers() {
   const cloverGrid = Array.from({ length: 2000 }, (_cell) =>
     CreateCuteCirclyFlower({
       ...getCloverVariantConfig(),
-      colorTolerence: [0, 0, 0],
     })
-  ).sort((cloverA, cloverB) => cloverA.petalColor[2] - cloverB.petalColor[2]);
+  ).sort((cloverA, cloverB) => cloverA.petalColor.l - cloverB.petalColor.l);
 
   const cloverDrawList = [...cloverGrid];
   const flowerDrawList = [];
