@@ -144,10 +144,14 @@ export function flowers() {
           //   this.entityRotater = makeEntityPointRotator(this.origin, 0);
         }
         if (this.lifeStatus === "dead") {
-          //   this.origin = [
-          //     Math.random() * canvasSize,
-          //     Math.random() * canvasSize,
-          //   ];
+          this.origin = [
+            Math.random() * canvasSize,
+            Math.random() * canvasSize,
+          ];
+          this.entityRotater = makeEntityPointRotator(
+            this.origin,
+            this.rotation
+          );
           this.petalDistance = this.petalDistanceOG;
           this.size = 0;
           this.age = 0;
@@ -166,8 +170,8 @@ export function flowers() {
         for (let i = 0; i < petalCount; i++) {
           ctx.fillStyle = formatOKLCHColor(petals[i].petalColor);
           const petalCoordinates: Coordinates = [
-            origin[0] + this.size * this.petalDistance,
-            origin[1],
+            this.origin[0] + this.size * this.petalDistance,
+            this.origin[1],
           ];
           const startCoordinates = this.entityRotater(
             entityRotaterAroundPoint(
@@ -182,7 +186,7 @@ export function flowers() {
         }
         if (this.centreColor) {
           ctx.fillStyle = this.centreColor;
-          drawCircle([origin[0], origin[1]], this.size);
+          drawCircle([this.origin[0], this.origin[1]], this.size);
         }
       },
     };
