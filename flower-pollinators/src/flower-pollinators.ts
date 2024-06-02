@@ -1,7 +1,7 @@
 type Coordinates = [number, number];
 type LCHValues = { l: number; c: number; h: number };
 
-type LIFESTATUS = "growing" | "dying" | "dead" | "dormant";
+type LIFESTATUS = "seed" | "growing" | "grown" | "dying" | "dead" | "dormant";
 
 interface CuteCirclyFlower {
   age: number;
@@ -9,7 +9,7 @@ interface CuteCirclyFlower {
   colorTolerence: LCHValues;
   draw: () => void;
   entityRotater: (point: Coordinates) => Coordinates;
-  grow: () => void;
+  lifeCycleTick: () => void;
   growthSpeed: number;
   lifeStatus: LIFESTATUS;
   lifetime: number;
@@ -27,11 +27,9 @@ interface CuteCirclyFlower {
   structureTolerence: number;
 }
 
-const formatOKLCHColor = ({
-  l: luminosity,
-  c: chroma,
-  h: hue,
-}: LCHValues): string => `oklch(${luminosity}% ${chroma} ${hue})`;
+const formatOKLCHColor = (
+  { l: luminosity, c: chroma, h: hue }: LCHValues = { l: 0, c: 0, h: 0 }
+): string => `oklch(${luminosity}% ${chroma} ${hue})`;
 
 export function flowers() {
   const TAU = Math.PI * 2;
@@ -55,6 +53,8 @@ export function flowers() {
     formatOKLCHColor({ l: 10, c: 0.5, h: cloverGreenHue })
   );
 
+  const flowerDrawList = [];
+
   // Fill canvas
   function clearCanvas() {
     ctx.fillStyle = bgGradient;
@@ -75,6 +75,7 @@ export function flowers() {
   }
 
   const CreateCuteCirclyFlower = ({
+    species = {},
     age = 0,
     centreColor = "white",
     colorTolerence = { l: 0, c: 0, h: 0 },
@@ -102,6 +103,7 @@ export function flowers() {
       createPetal(colorJitter(petalColor, colorTolerence))
     );
     return {
+      species,
       age: Math.random() * lifetime,
       centreColor,
       colorTolerence,
@@ -121,51 +123,67 @@ export function flowers() {
       rotationSpeed,
       size,
       structureTolerence,
-      grow() {
+      lifeCycleTick() {
+        this.age++;
         if (!this.petalDistanceOG) {
           this.petalDistanceOG = this.petalDistance;
         }
-        this.age++;
-        if (this.lifeStatus === "growing") {
-          this.size += this.growthSpeed;
-          this.rotation += this.rotationSpeed;
+        switch (this.lifeStatus) {
+          case "dormant": {
+            // nothing doing
+            break;
+          }
+          case "seed": {
+            this.size = 10;
+            this.petalSize = 0;
+            if (this.age > this.lifetime) {
+              this.age = 0;
+              this.lifeStatus = "growing";
+            }
+            break;
+          }
+          case "growing": {
+            this.size += this.growthSpeed;
+            this.petalSize +=
+              this.petalSize < this.species.petalSize
+                ? this.growthSpeed * 0.5
+                : 0;
+            this.rotation += this.rotationSpeed;
+            break;
+          }
+          case "dying": {
+            this.size -= 0.1;
+            this.petalDistance += 0.1;
+            break;
+          }
+          case "dead": {
+            this.petalDistance = this.petalDistanceOG;
+            this.size = 0;
+            this.age = 0;
+            this.lifeStatus = Math.random() > 0.5 ? "growing" : "dormant";
+            break;
+          }
+
+          default:
+            break;
         }
-        if (this.lifeStatus === "dormant") {
-          // nothing doing
-        }
-        if (this.age > this.lifetime) {
-          this.lifeStatus = "dying";
-          this.size -= 0.1;
-          this.petalDistance += 0.1;
-        }
+        // if (this.age > this.lifetime) {
+        //   this.lifeStatus = "dying";
+        // }
         if (this.lifeStatus === "dying" && this.size < 0) {
           this.lifeStatus = "dead";
-
-          //   this.entityRotater = makeEntityPointRotator(this.origin, 0);
-        }
-        if (this.lifeStatus === "dead") {
-          this.origin = [
-            Math.random() * canvasSize,
-            Math.random() * canvasSize,
-          ];
-          this.entityRotater = makeEntityPointRotator(
-            this.origin,
-            this.rotation
-          );
-          this.petalDistance = this.petalDistanceOG;
-          this.size = 0;
-          this.age = 0;
-          //   this.origin = [10, 10];
-          this.lifeStatus = Math.random() > 0.5 ? "growing" : "dormant";
         }
         if (this.size > this.maxSize) {
           this.size = this.maxSize;
         }
       },
+      move() {
+        this.origin = [Math.random() * canvasSize, Math.random() * canvasSize];
+        this.entityRotater = makeEntityPointRotator(this.origin, this.rotation);
+      },
       draw() {
         this.entityRotater = makeEntityPointRotator(this.origin, this.rotation);
-
-        this.grow();
+        this.lifeCycleTick();
 
         for (let i = 0; i < petalCount; i++) {
           ctx.fillStyle = formatOKLCHColor(petals[i].petalColor);
@@ -208,7 +226,6 @@ export function flowers() {
     return {
       centreColor: null,
       colorTolerence: { l: 0, c: 0, h: 1 },
-
       growthSpeed: canvasSize * 0.00005 + 0.01 * Math.random(),
       lifetime: Infinity,
       maxSize: canvasSize * 0.02,
@@ -225,18 +242,77 @@ export function flowers() {
       petalDistance: 1,
       petalDistanceOG: 1,
       rotation: Math.floor(360 * Math.random()),
-      rotationSpeed: numberJitter(0.2, 0.5),
+      rotationSpeed: numberJitter(0, 0.1),
       size: 0,
       structureTolerence: 10,
     };
   };
 
+  const createBeeAgent = () => {
+    return {
+      origin: [0, 0],
+      speed: 2,
+      target: undefined,
+      pollen: null,
+      chooseTarget() {
+        if (!flowerDrawList || flowerDrawList.length === 0) return;
+        this.target =
+          flowerDrawList[Math.floor(Math.random() * flowerDrawList.length)];
+      },
+      move() {
+        if (!this.target) return;
+
+        if (
+          Math.abs(this.origin[0] - this.target.origin[0]) < 10 &&
+          Math.abs(this.origin[1] - this.target.origin[1]) < 10
+        ) {
+          this.pollen = this.target.species;
+          console.log("🐝", this.pollen.petalColor);
+
+          this.chooseTarget();
+        }
+
+        this.origin = [
+          this.origin[0] - this.target.origin[0] > 0
+            ? this.origin[0] - this.speed
+            : this.origin[0] + this.speed,
+          this.origin[1] - this.target.origin[1] > 0
+            ? this.origin[1] - this.speed
+            : this.origin[1] + this.speed,
+        ];
+      },
+      draw() {
+        if (!this.target) {
+          this.chooseTarget();
+        }
+        this.move();
+        ctx.fillStyle = formatOKLCHColor(this.pollen?.petalColor) || "black";
+        drawCircle(this.origin, 10);
+
+        if (this.target) {
+          ctx.strokeStyle = "red";
+          ctx.beginPath();
+          ctx.moveTo(...this.origin);
+          ctx.lineTo(...this.target.origin);
+          ctx.stroke();
+          ctx.closePath();
+        }
+      },
+    };
+  };
+
+  const beeList = [createBeeAgent(), createBeeAgent()];
+
   const generateFlowerSpeciesConfig = ({
     petalHue,
     maxSize,
+    origin,
+    lifeStatus = "growing",
   }: {
     petalHue: number;
     maxSize: number;
+    origin: [number, number] | undefined;
+    lifeStatus: string;
   }): (() => Partial<CuteCirclyFlower>) => {
     const baseLifetime = Math.random() * 2000 + 300;
 
@@ -246,23 +322,27 @@ export function flowers() {
       petalSize: Math.random() * 2 + 0.3,
       structureTolerence: Math.random() * 2,
       petalDistance: Math.random() * 2,
+      petalColor: {
+        l: 75,
+        c: 0.2,
+        h: petalHue,
+      },
     };
 
     return () => ({
-      origin: [Math.random() * canvasSize, Math.random() * canvasSize],
+      species: {
+        ...speciesFeatures,
+      },
+      origin: origin || [(petalHue * 50) % canvasSize, petalHue * 2],
       rotation: Math.floor(360 * Math.random()),
       rotationSpeed: numberJitter(0, 0.5),
       size: 0,
       maxSize, //canvasSize * (0.03 * Math.random() ** 2 + 0.01),
       growthSpeed: canvasSize * (0.0001 * Math.random()),
       colorTolerence: { l: 3, c: 0.01, h: 3 },
-      petalColor: {
-        l: 75,
-        c: 0.2,
-        h: petalHue,
-      },
+      petalColor: speciesFeatures.petalColor,
       lifetime: baseLifetime + baseLifetime * 0.1 * Math.random(),
-      lifeStatus: "growing",
+      lifeStatus,
       age: 0,
       petalDistanceOG: speciesFeatures.petalDistance,
       ...speciesFeatures,
@@ -276,23 +356,52 @@ export function flowers() {
   ).sort((cloverA, cloverB) => cloverA.petalColor.l - cloverB.petalColor.l);
 
   const cloverDrawList = [...cloverGrid];
-  const flowerDrawList = [];
 
   //   generate random flowers
-  for (let i = 0; i < Math.random() * 10 + 3; i++) {
-    let petalHue = Math.random() * 360;
-    if (Math.abs(petalHue - cloverGreenHue) < 40) {
-      petalHue += Math.random() * 90 + (petalHue - cloverGreenHue);
-    }
-    const getFlowerVariantConfig = generateFlowerSpeciesConfig({
-      petalHue,
-      maxSize: canvasSize * (0.03 * Math.random() ** 2 + 0.01),
-    });
-    for (let j = 0; j < Math.random() * 300; j++) {
+  //   for (let i = 0; i < 360; i++) {
+  //     let petalHue = i;
+  ////     if (Math.abs(petalHue - cloverGreenHue) < 40) {
+  ////       petalHue += Math.random() * 90 + (petalHue - cloverGreenHue);
+  ////     }
+  //     const getFlowerVariantConfig = generateFlowerSpeciesConfig({
+  //       petalHue,
+  //       maxSize: canvasSize * (0.03 * Math.random() ** 2 + 0.01),
+  //     });
+  //     const flower = CreateCuteCirclyFlower(getFlowerVariantConfig());
+  //     flowerDrawList.push(flower);
+  //   }
+
+  let drawingActive = false;
+
+  canvas.addEventListener(
+    "mousedown",
+    (event) => (drawingActive = true),
+    false
+  );
+
+  canvas.addEventListener("mouseup", (event) => (drawingActive = false), false);
+
+  canvas.addEventListener(
+    // "mousemove",
+    "click",
+    function (event) {
+      //   if (!drawingActive) return;
+
+      let petalHue = Math.random() * 360;
+      let rect = canvas.getBoundingClientRect();
+      let x = event.clientX - rect.left;
+      let y = event.clientY - rect.top;
+      const getFlowerVariantConfig = generateFlowerSpeciesConfig({
+        petalHue,
+        maxSize: canvasSize * (0.03 * Math.random() ** 2 + 0.01),
+        origin: [x, y],
+        lifeStatus: "seed",
+      });
       const flower = CreateCuteCirclyFlower(getFlowerVariantConfig());
       flowerDrawList.push(flower);
-    }
-  }
+    },
+    false
+  );
 
   (function drawArtwork(t = 0) {
     clearCanvas();
@@ -304,6 +413,8 @@ export function flowers() {
       .forEach((entity) => {
         entity.draw();
       });
+    beeList.forEach((entity) => entity.draw());
+
     window.requestAnimationFrame(drawArtwork);
   })();
 
@@ -315,58 +426,58 @@ export function flowers() {
     ctx.closePath();
   }
 
-  function drawClover(
-    origin: Coordinates = [0, 0],
-    rotation: number = 0,
-    size: number = 30
-  ): void {
-    drawCloverLeafHalf(origin, rotation + 0, size);
-    drawCloverLeafHalf(origin, rotation + 50, size);
-    drawCloverLeafHalf(origin, rotation + 120, size);
-    drawCloverLeafHalf(origin, rotation + 170, size);
-    drawCloverLeafHalf(origin, rotation + 240, size);
-    drawCloverLeafHalf(origin, rotation + 290, size);
-  }
+  //   function drawClover(
+  //     origin: Coordinates = [0, 0],
+  //     rotation: number = 0,
+  //     size: number = 30
+  //   ): void {
+  //     drawCloverLeafHalf(origin, rotation + 0, size);
+  //     drawCloverLeafHalf(origin, rotation + 50, size);
+  //     drawCloverLeafHalf(origin, rotation + 120, size);
+  //     drawCloverLeafHalf(origin, rotation + 170, size);
+  //     drawCloverLeafHalf(origin, rotation + 240, size);
+  //     drawCloverLeafHalf(origin, rotation + 290, size);
+  //   }
 
-  function drawCloverLeafHalf(
-    origin: Coordinates = [300, 300],
-    rotation: number = 30,
-    size: number = 50
-  ): void {
-    ctx.fillStyle = `#004400`;
-    const length = size * 2;
-    const leafBulge = length * 1.4;
-    const entityRotater = makeEntityPointRotator(origin, rotation);
-    const startPoint: Coordinates = [...origin];
-    const [x, y] = origin;
-    const corner1: Coordinates = entityRotater([x + size, y + length]);
-    const controlPoint1a: Coordinates = entityRotater([x + 5, y + 10]);
-    const controlPoint1b: Coordinates = entityRotater([
-      x + size,
-      y + length * 0.75,
-    ]);
-    const controlPoint2a: Coordinates = entityRotater([
-      x + size,
-      y + leafBulge,
-    ]);
-    const controlPoint2b: Coordinates = entityRotater([
-      x - size,
-      y + leafBulge,
-    ]);
-    const corner2: Coordinates = entityRotater([x - size, y + length]);
-    const controlPoint3a: Coordinates = entityRotater([
-      x - size,
-      y + length * 0.75,
-    ]);
-    const controlPoint3b: Coordinates = entityRotater([x - 5, y + 10]);
-    ctx.beginPath();
-    ctx.moveTo(...startPoint);
-    ctx.bezierCurveTo(...controlPoint1a, ...controlPoint1b, ...corner1);
-    ctx.bezierCurveTo(...controlPoint2a, ...controlPoint2b, ...corner2);
-    ctx.bezierCurveTo(...controlPoint3a, ...controlPoint3b, ...startPoint);
-    ctx.fill();
-    ctx.closePath();
-  }
+  //   function drawCloverLeafHalf(
+  //     origin: Coordinates = [300, 300],
+  //     rotation: number = 30,
+  //     size: number = 50
+  //   ): void {
+  //     ctx.fillStyle = `#004400`;
+  //     const length = size * 2;
+  //     const leafBulge = length * 1.4;
+  //     const entityRotater = makeEntityPointRotator(origin, rotation);
+  //     const startPoint: Coordinates = [...origin];
+  //     const [x, y] = origin;
+  //     const corner1: Coordinates = entityRotater([x + size, y + length]);
+  //     const controlPoint1a: Coordinates = entityRotater([x + 5, y + 10]);
+  //     const controlPoint1b: Coordinates = entityRotater([
+  //       x + size,
+  //       y + length * 0.75,
+  //     ]);
+  //     const controlPoint2a: Coordinates = entityRotater([
+  //       x + size,
+  //       y + leafBulge,
+  //     ]);
+  //     const controlPoint2b: Coordinates = entityRotater([
+  //       x - size,
+  //       y + leafBulge,
+  //     ]);
+  //     const corner2: Coordinates = entityRotater([x - size, y + length]);
+  //     const controlPoint3a: Coordinates = entityRotater([
+  //       x - size,
+  //       y + length * 0.75,
+  //     ]);
+  //     const controlPoint3b: Coordinates = entityRotater([x - 5, y + 10]);
+  //     ctx.beginPath();
+  //     ctx.moveTo(...startPoint);
+  //     ctx.bezierCurveTo(...controlPoint1a, ...controlPoint1b, ...corner1);
+  //     ctx.bezierCurveTo(...controlPoint2a, ...controlPoint2b, ...corner2);
+  //     ctx.bezierCurveTo(...controlPoint3a, ...controlPoint3b, ...startPoint);
+  //     ctx.fill();
+  //     ctx.closePath();
+  //   }
 
   function makeEntityPointRotator(
     origin: Coordinates = [0, 0],
