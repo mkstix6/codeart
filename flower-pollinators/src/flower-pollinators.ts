@@ -10,15 +10,16 @@ interface SpeciesFeatures {
   petalDistance: number;
   petalSize: number;
   structureTolerence: number;
+  maxSize: number;
+  growthSpeed: number;
+  colorTolerence: LCHValues;
 }
 
 interface CuteCirclyFlower extends SpeciesFeatures {
   species: SpeciesFeatures;
   age: number;
-  colorTolerence: LCHValues;
   draw: () => void;
   entityRotater: (point: Coordinates) => Coordinates;
-  growthSpeed: number;
   lifeCycleTick: () => void;
   lifeStatus: LIFESTATUS;
   lifetime: number;
@@ -38,23 +39,18 @@ export function flowers() {
   const TAU = Math.PI * 2;
   // Prepare canvas
   const canvas = <HTMLCanvasElement>document.getElementById("canvas");
-  const canvasSize = 2 ** 9;
+  const canvasSize = 2 ** 8;
   canvas.width = canvasSize;
   canvas.height = canvasSize;
+  canvas.style.borderRadius = "2em";
   const ctx = <CanvasRenderingContext2D>(
     canvas.getContext("2d", { colorSpace: "display-p3" })
   );
   const bgGradient = ctx.createLinearGradient(0, 0, 0, canvasSize);
   const cloverGreenHue = 148;
   // Add three color stops
-  bgGradient.addColorStop(
-    0,
-    formatOKLCHColor({ l: 15, c: 0.5, h: cloverGreenHue })
-  );
-  bgGradient.addColorStop(
-    1,
-    formatOKLCHColor({ l: 10, c: 0.5, h: cloverGreenHue })
-  );
+  bgGradient.addColorStop(0, formatOKLCHColor({ l: 25, c: 0.022, h: 43 }));
+  bgGradient.addColorStop(1, formatOKLCHColor({ l: 23, c: 0.022, h: 43 }));
 
   const flowerDrawList = new Set();
 
@@ -78,7 +74,7 @@ export function flowers() {
   }
 
   const CreateCuteCirclyFlower = ({
-    species = {},
+    species,
     age = 0,
     centreColor = "white",
     colorTolerence = { l: 0, c: 0, h: 0 },
@@ -151,6 +147,7 @@ export function flowers() {
         if (!this.species.petalDistance) {
           this.species.petalDistance = this.petalDistance;
         }
+
         switch (this.lifeStatus) {
           case "dormant": {
             // nothing doing
@@ -166,9 +163,16 @@ export function flowers() {
             break;
           }
           case "growing": {
-            this.size += this.growthSpeed;
-            this.petalSize += this.growthSpeed * 0.5;
-            if (this.petalSize > this.species.petalSize) {
+            this.size +=
+              this.size < this.species.maxSize ? this.growthSpeed : 0;
+            this.petalSize +=
+              this.petalSize < this.species.petalSize
+                ? this.growthSpeed * 0.5
+                : 0;
+            if (
+              this.petalSize >= this.species.petalSize &&
+              this.size >= this.species.maxSize
+            ) {
               this.lifeStatus = "grown";
             }
             break;
@@ -253,9 +257,11 @@ export function flowers() {
     const speciesFeatures: SpeciesFeatures = {
       centreColor: null,
       petalCount: Math.random() > 0.9 ? 4 : 3,
-      petalSize: Math.random() * 2 + 0.3,
-      structureTolerence: 10,
       petalDistance: 1,
+      petalSize: 1, // Math.random() * 2 + 0.3,
+      maxSize: canvasSize * 0.03,
+      structureTolerence: 10,
+      growthSpeed: Math.random() * 0.03 + 0.01,
       petalColor: {
         l:
           (Math.ceil(Math.random() * 5) + 5) *
@@ -267,16 +273,15 @@ export function flowers() {
     };
 
     return {
-      species: speciesFeatures,
       colorTolerence: { l: 0, c: 0, h: 1 },
       growthSpeed: canvasSize * 0.00005 + 0.01 * Math.random(),
-      lifetime: Infinity,
       lifeStatus: "growing",
-      maxSize: canvasSize * 0.02,
+      lifetime: Infinity,
       origin: [Math.random() * canvasSize, Math.random() * canvasSize],
       rotation: Math.floor(360 * Math.random()),
       rotationSpeed: numberJitter(0, 0.1),
       size: 0,
+      species: speciesFeatures,
       ...speciesFeatures,
     };
   };
@@ -367,6 +372,10 @@ export function flowers() {
       petalSize: Math.random() * 2 + 0.3,
       structureTolerence: Math.random() * 2,
       petalDistance: Math.random() * 2,
+      maxSize: maxSize || canvasSize * (0.03 * Math.random() ** 2 + 0.01),
+      growthSpeed: canvasSize * (0.0001 * Math.random()),
+      colorTolerence: { l: 3, c: 0.01, h: 3 },
+      lifetime: baseLifetime + baseLifetime * 0.1 * Math.random(),
       petalColor: {
         l: 75,
         c: 0.2,
@@ -380,17 +389,13 @@ export function flowers() {
       rotation: Math.floor(360 * Math.random()),
       rotationSpeed: numberJitter(0, 0.5),
       size: 0,
-      maxSize, //canvasSize * (0.03 * Math.random() ** 2 + 0.01),
-      growthSpeed: canvasSize * (0.0001 * Math.random()),
-      colorTolerence: { l: 3, c: 0.01, h: 3 },
-      lifetime: baseLifetime + baseLifetime * 0.1 * Math.random(),
       lifeStatus,
       age: 0,
       ...speciesFeatures,
     });
   };
 
-  const cloverGrid = Array.from({ length: 2000 }, (_cell) =>
+  const cloverGrid = Array.from({ length: 1000 }, (_cell) =>
     CreateCuteCirclyFlower({
       ...getCloverVariantConfig(),
     })
