@@ -3,28 +3,31 @@ type LCHValues = { l: number; c: number; h: number };
 
 type LIFESTATUS = "seed" | "growing" | "grown" | "dying" | "dead" | "dormant";
 
-interface CuteCirclyFlower {
+interface SpeciesFeatures {
+  centreColor?: string;
+  petalColor: LCHValues;
+  petalCount: number;
+  petalDistance: number;
+  petalSize: number;
+  structureTolerence: number;
+}
+
+interface CuteCirclyFlower extends SpeciesFeatures {
+  species: SpeciesFeatures;
   age: number;
-  centreColor: string | null;
   colorTolerence: LCHValues;
   draw: () => void;
   entityRotater: (point: Coordinates) => Coordinates;
-  lifeCycleTick: () => void;
   growthSpeed: number;
+  lifeCycleTick: () => void;
   lifeStatus: LIFESTATUS;
   lifetime: number;
   maxSize: number;
   origin: Coordinates;
-  petalColor: LCHValues;
-  petalCount: number;
-  petalDistance: number;
-  petalDistanceOG: number;
   petals: { petalColor: LCHValues }[];
-  petalSize: number;
   rotation: number;
   rotationSpeed: number;
   size: number;
-  structureTolerence: number;
 }
 
 const formatOKLCHColor = (
@@ -53,7 +56,7 @@ export function flowers() {
     formatOKLCHColor({ l: 10, c: 0.5, h: cloverGreenHue })
   );
 
-  const flowerDrawList = [];
+  const flowerDrawList = new Set();
 
   // Fill canvas
   function clearCanvas() {
@@ -87,7 +90,6 @@ export function flowers() {
     petalColor = { l: 73, c: 3, h: 89 },
     petalCount = 5,
     petalDistance = 1,
-    petalDistanceOG = 1,
     petalSize = 1,
     rotation = 0,
     rotationSpeed = 0,
@@ -116,7 +118,6 @@ export function flowers() {
       petalColor,
       petalCount,
       petalDistance,
-      petalDistanceOG,
       petals,
       petalSize,
       rotation,
@@ -125,8 +126,30 @@ export function flowers() {
       structureTolerence,
       lifeCycleTick() {
         this.age++;
-        if (!this.petalDistanceOG) {
-          this.petalDistanceOG = this.petalDistance;
+        if (this.pollen) {
+          //   flowerDrawList.delete(this);
+          const h1 = this.petalColor.h;
+          const h2 = this.pollen.petalColor.h;
+          const newh =
+            Math.abs(h1 - h2) < 180
+              ? (h1 + h2) / 2
+              : h1 - h2 > 0
+              ? (h1 + (h2 + 360 - h1) / 2) % 360
+              : (h2 + (h1 + 360 - h2) / 2) % 360;
+          const newColor = {
+            ...this.pollen.petalColor,
+            h: newh + (Math.random() * 2 - 1) * 20,
+          };
+          this.pollen = null;
+          this.petalColor = newColor;
+          this.species.petalColor = newColor;
+          this.petals.forEach((petal) => {
+            petal.petalColor = newColor;
+          });
+          this.lifeStatus = "dying";
+        }
+        if (!this.species.petalDistance) {
+          this.species.petalDistance = this.petalDistance;
         }
         switch (this.lifeStatus) {
           case "dormant": {
@@ -144,11 +167,15 @@ export function flowers() {
           }
           case "growing": {
             this.size += this.growthSpeed;
-            this.petalSize +=
-              this.petalSize < this.species.petalSize
-                ? this.growthSpeed * 0.5
-                : 0;
+            this.petalSize += this.growthSpeed * 0.5;
+            if (this.petalSize > this.species.petalSize) {
+              this.lifeStatus = "grown";
+            }
+            break;
+          }
+          case "grown": {
             this.rotation += this.rotationSpeed;
+
             break;
           }
           case "dying": {
@@ -157,10 +184,7 @@ export function flowers() {
             break;
           }
           case "dead": {
-            this.petalDistance = this.petalDistanceOG;
-            this.size = 0;
-            this.age = 0;
-            this.lifeStatus = Math.random() > 0.5 ? "growing" : "dormant";
+            flowerDrawList.delete(this);
             break;
           }
 
@@ -182,8 +206,11 @@ export function flowers() {
         this.entityRotater = makeEntityPointRotator(this.origin, this.rotation);
       },
       draw() {
-        this.entityRotater = makeEntityPointRotator(this.origin, this.rotation);
         this.lifeCycleTick();
+        if (this.size < 0) {
+          return;
+        }
+        this.entityRotater = makeEntityPointRotator(this.origin, this.rotation);
 
         for (let i = 0; i < petalCount; i++) {
           ctx.fillStyle = formatOKLCHColor(petals[i].petalColor);
@@ -223,13 +250,12 @@ export function flowers() {
     let gridSpacing = 50;
     let tolerance = gridSpacing / 2;
 
-    return {
+    const speciesFeatures: SpeciesFeatures = {
       centreColor: null,
-      colorTolerence: { l: 0, c: 0, h: 1 },
-      growthSpeed: canvasSize * 0.00005 + 0.01 * Math.random(),
-      lifetime: Infinity,
-      maxSize: canvasSize * 0.02,
-      origin: [Math.random() * canvasSize, Math.random() * canvasSize],
+      petalCount: Math.random() > 0.9 ? 4 : 3,
+      petalSize: Math.random() * 2 + 0.3,
+      structureTolerence: 10,
+      petalDistance: 1,
       petalColor: {
         l:
           (Math.ceil(Math.random() * 5) + 5) *
@@ -238,13 +264,20 @@ export function flowers() {
         c: 0.12,
         h: cloverGreenHue,
       },
-      petalCount: Math.random() > 0.9 ? 4 : 3,
-      petalDistance: 1,
-      petalDistanceOG: 1,
+    };
+
+    return {
+      species: speciesFeatures,
+      colorTolerence: { l: 0, c: 0, h: 1 },
+      growthSpeed: canvasSize * 0.00005 + 0.01 * Math.random(),
+      lifetime: Infinity,
+      lifeStatus: "growing",
+      maxSize: canvasSize * 0.02,
+      origin: [Math.random() * canvasSize, Math.random() * canvasSize],
       rotation: Math.floor(360 * Math.random()),
       rotationSpeed: numberJitter(0, 0.1),
       size: 0,
-      structureTolerence: 10,
+      ...speciesFeatures,
     };
   };
 
@@ -255,31 +288,42 @@ export function flowers() {
       target: undefined,
       pollen: null,
       chooseTarget() {
-        if (!flowerDrawList || flowerDrawList.length === 0) return;
+        if (!flowerDrawList || flowerDrawList.size === 0) return;
+        const currentFlowerList = [...flowerDrawList].filter(
+          (flower) => flower.lifeStatus === "grown"
+        );
         this.target =
-          flowerDrawList[Math.floor(Math.random() * flowerDrawList.length)];
+          currentFlowerList[
+            Math.floor(Math.random() * currentFlowerList.length)
+          ];
+      },
+      isTouchingTarget() {
+        return (
+          Math.abs(this.origin[0] - this.target.origin[0]) < 10 &&
+          Math.abs(this.origin[1] - this.target.origin[1]) < 10
+        );
       },
       move() {
         if (!this.target) return;
 
-        if (
-          Math.abs(this.origin[0] - this.target.origin[0]) < 10 &&
-          Math.abs(this.origin[1] - this.target.origin[1]) < 10
-        ) {
+        if (this.isTouchingTarget()) {
+          if (this.pollen) {
+            this.target.pollen = this.pollen;
+          }
           this.pollen = this.target.species;
-          console.log("🐝", this.pollen.petalColor);
-
           this.chooseTarget();
         }
 
-        this.origin = [
-          this.origin[0] - this.target.origin[0] > 0
-            ? this.origin[0] - this.speed
-            : this.origin[0] + this.speed,
-          this.origin[1] - this.target.origin[1] > 0
-            ? this.origin[1] - this.speed
-            : this.origin[1] + this.speed,
-        ];
+        if (this.target) {
+          this.origin = [
+            this.origin[0] - this.target.origin[0] > 0
+              ? this.origin[0] - this.speed
+              : this.origin[0] + this.speed,
+            this.origin[1] - this.target.origin[1] > 0
+              ? this.origin[1] - this.speed
+              : this.origin[1] + this.speed,
+          ];
+        }
       },
       draw() {
         if (!this.target) {
@@ -309,11 +353,12 @@ export function flowers() {
     origin,
     lifeStatus = "growing",
   }: {
-    petalHue: number;
+    petalHue?: number;
     maxSize: number;
     origin: [number, number] | undefined;
     lifeStatus: string;
   }): (() => Partial<CuteCirclyFlower>) => {
+    petalHue = petalHue || Math.random() * 360;
     const baseLifetime = Math.random() * 2000 + 300;
 
     const speciesFeatures = {
@@ -330,9 +375,7 @@ export function flowers() {
     };
 
     return () => ({
-      species: {
-        ...speciesFeatures,
-      },
+      species: speciesFeatures,
       origin: origin || [(petalHue * 50) % canvasSize, petalHue * 2],
       rotation: Math.floor(360 * Math.random()),
       rotationSpeed: numberJitter(0, 0.5),
@@ -340,11 +383,9 @@ export function flowers() {
       maxSize, //canvasSize * (0.03 * Math.random() ** 2 + 0.01),
       growthSpeed: canvasSize * (0.0001 * Math.random()),
       colorTolerence: { l: 3, c: 0.01, h: 3 },
-      petalColor: speciesFeatures.petalColor,
       lifetime: baseLifetime + baseLifetime * 0.1 * Math.random(),
       lifeStatus,
       age: 0,
-      petalDistanceOG: speciesFeatures.petalDistance,
       ...speciesFeatures,
     });
   };
@@ -381,27 +422,40 @@ export function flowers() {
 
   canvas.addEventListener("mouseup", (event) => (drawingActive = false), false);
 
+  // create flowers on click
   canvas.addEventListener(
-    // "mousemove",
-    "click",
+    "mousemove",
+    // "click",
     function (event) {
-      //   if (!drawingActive) return;
+      if (!drawingActive) return;
 
-      let petalHue = Math.random() * 360;
+      //   let petalHue = Math.random() * 360;
       let rect = canvas.getBoundingClientRect();
       let x = event.clientX - rect.left;
       let y = event.clientY - rect.top;
       const getFlowerVariantConfig = generateFlowerSpeciesConfig({
-        petalHue,
+        // petalHue,
         maxSize: canvasSize * (0.03 * Math.random() ** 2 + 0.01),
         origin: [x, y],
         lifeStatus: "seed",
       });
       const flower = CreateCuteCirclyFlower(getFlowerVariantConfig());
-      flowerDrawList.push(flower);
+      flowerDrawList.add(flower);
     },
     false
   );
+
+  // create flowers at start
+  for (let index = 0; index < 5; index++) {
+    const getFlowerVariantConfig = generateFlowerSpeciesConfig({
+      // petalHue,
+      maxSize: canvasSize * (0.03 * Math.random() ** 2 + 0.01),
+      origin: [canvasSize * Math.random(), canvasSize * Math.random()],
+      lifeStatus: "seed",
+    });
+    const flower = CreateCuteCirclyFlower(getFlowerVariantConfig());
+    flowerDrawList.add(flower);
+  }
 
   (function drawArtwork(t = 0) {
     clearCanvas();
@@ -409,7 +463,7 @@ export function flowers() {
       entity.draw();
     });
     flowerDrawList
-      .sort(({ size: a }, { size: b }) => a - b)
+      //   .sort(({ size: a }, { size: b }) => a - b)
       .forEach((entity) => {
         entity.draw();
       });
@@ -419,6 +473,10 @@ export function flowers() {
   })();
 
   function drawCircle(origin: Coordinates, size: number): void {
+    if (size < 0) {
+      console.warn("circle size too small", size);
+      return;
+    }
     ctx.beginPath();
     ctx.moveTo(...origin);
     ctx.arc(...origin, size, 0, TAU);
