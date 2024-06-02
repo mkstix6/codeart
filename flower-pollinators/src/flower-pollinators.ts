@@ -1,10 +1,22 @@
-type Coordinates = [number, number];
-type LCHValues = { l: number; c: number; h: number };
+import { createBeeAgent } from "./bee.ts";
+import type { LCHValues } from "./color.ts";
+import { formatOKLCHColor } from "./color.ts";
+import { initialiseDrawCircleHelper } from "./shape.ts";
 
-type LIFESTATUS = "seed" | "growing" | "grown" | "dying" | "dead" | "dormant";
+type Coordinates = [number, number];
+
+type LIFESTATUS =
+  | "germinating"
+  | "dispersing"
+  | "seed"
+  | "growing"
+  | "grown"
+  | "dying"
+  | "dead"
+  | "dormant";
 
 interface SpeciesFeatures {
-  centreColor?: string;
+  centreColor?: LCHValues | null;
   petalColor: LCHValues;
   petalCount: number;
   petalDistance: number;
@@ -31,15 +43,11 @@ interface CuteCirclyFlower extends SpeciesFeatures {
   size: number;
 }
 
-const formatOKLCHColor = (
-  { l: luminosity, c: chroma, h: hue }: LCHValues = { l: 0, c: 0, h: 0 }
-): string => `oklch(${luminosity}% ${chroma} ${hue})`;
-
 export function flowers() {
   const TAU = Math.PI * 2;
   // Prepare canvas
   const canvas = <HTMLCanvasElement>document.getElementById("canvas");
-  const canvasSize = 2 ** 8;
+  const canvasSize = 2 ** 9;
   canvas.width = canvasSize;
   canvas.height = canvasSize;
   canvas.style.borderRadius = "2em";
@@ -48,6 +56,7 @@ export function flowers() {
   );
   const bgGradient = ctx.createLinearGradient(0, 0, 0, canvasSize);
   const cloverGreenHue = 148;
+  let t = 0;
   // Add three color stops
   bgGradient.addColorStop(0, formatOKLCHColor({ l: 25, c: 0.022, h: 43 }));
   bgGradient.addColorStop(1, formatOKLCHColor({ l: 23, c: 0.022, h: 43 }));
@@ -60,7 +69,24 @@ export function flowers() {
     ctx.fillRect(0, 0, canvasSize, canvasSize);
   }
 
+  function isFloorWet(coordinates) {
+    const center = [
+      Math.abs(canvasSize * Math.sin(t * 0.0003)) % canvasSize,
+      Math.abs(canvasSize * Math.cos(t * 0.000214)) % canvasSize,
+    ];
+    // if (false) {
+    ctx.fillStyle = "#00003302";
+    drawCircle(center, canvasSize / 4);
+    // }
+    return (
+      Math.abs(center[0] - coordinates[0]) < canvasSize / 4 &&
+      Math.abs(center[1] - coordinates[1]) < canvasSize / 4
+    );
+  }
+
   clearCanvas();
+
+  const drawCircle = initialiseDrawCircleHelper(ctx);
 
   const numberJitter = (value: number, tolerance: number) =>
     value + tolerance * (Math.random() * 2 - 1);
@@ -122,6 +148,8 @@ export function flowers() {
       structureTolerence,
       lifeCycleTick() {
         this.age++;
+        // console.log(this.lifeStatus);
+
         if (this.pollen) {
           //   flowerDrawList.delete(this);
           const h1 = this.petalColor.h;
@@ -137,11 +165,25 @@ export function flowers() {
             h: newh + (Math.random() * 2 - 1) * 20,
           };
           this.pollen = null;
-          this.petalColor = newColor;
-          this.species.petalColor = newColor;
-          this.petals.forEach((petal) => {
-            petal.petalColor = newColor;
+
+          const getSeedVariantConfig = generateFlowerSpeciesConfig({
+            petalHue: newh,
+            maxSize: canvasSize * (0.03 * Math.random() ** 2 + 0.01),
+            origin: [...this.origin],
+            lifeStatus: "germinating",
           });
+
+          for (let index = 0; index < 3; index++) {
+            const flower = CreateCuteCirclyFlower(getSeedVariantConfig());
+            flowerDrawList.add(flower);
+          }
+
+          //   this.petalColor = newColor;
+          //   this.species.petalColor = newColor;
+          //   this.petals.forEach((petal) => {
+          //     petal.petalColor = newColor;
+          //   });
+
           this.lifeStatus = "dying";
         }
         if (!this.species.petalDistance) {
@@ -149,12 +191,47 @@ export function flowers() {
         }
 
         switch (this.lifeStatus) {
+          case "germinating": {
+            this.size = 10;
+            this.petalSize = 0;
+            if (this.age > 500) {
+              this.age = 0;
+              this.lifeStatus = "dispersing";
+              this.direction = Math.random() * TAU;
+            }
+            break;
+          }
+          case "dispersing": {
+            this.size = 10;
+            this.centreColor = this.petalColor;
+            this.origin = [
+              this.origin[0] +
+                /*(Math.random() - 0.5) **/ Math.sin(this.direction),
+              this.origin[1] +
+                /*(Math.random() - 0.5) **/ Math.cos(this.direction),
+            ];
+            if (this.age > 100) {
+              this.age = 0;
+              this.lifeStatus = "growing";
+            }
+            break;
+          }
           case "dormant": {
+            this.centreColor = { l: 38.82, c: 0.023, h: 43.41 };
+            this.petalSize -= this.petalSize > 0 ? 0.0005 : 0;
+            this.petalColor.c -= 1;
+            this.size -= this.size > 1 ? 0.0001 : 0;
+            if (this.petalSize < 0.001) {
+              this.lifeStatus = "dying";
+            }
             // nothing doing
+            if (isFloorWet(this.origin)) {
+              this.lifeStatus = "growing";
+            }
             break;
           }
           case "seed": {
-            this.size = 10;
+            this.size = 3;
             this.petalSize = 0;
             if (this.age > this.lifetime) {
               this.age = 0;
@@ -163,6 +240,11 @@ export function flowers() {
             break;
           }
           case "growing": {
+            this.petalColor = this.species.petalColor;
+            if (!isFloorWet(this.origin)) {
+              this.lifeStatus = "dormant";
+            }
+            this.centreColor = this.species.centreColor;
             this.size +=
               this.size < this.species.maxSize ? this.growthSpeed : 0;
             this.petalSize +=
@@ -173,16 +255,21 @@ export function flowers() {
               this.petalSize >= this.species.petalSize &&
               this.size >= this.species.maxSize
             ) {
+              this.age = 0;
               this.lifeStatus = "grown";
             }
             break;
           }
           case "grown": {
             this.rotation += this.rotationSpeed;
-
+            if (this.age > 1000) {
+              this.lifeStatus = "dying";
+            }
             break;
           }
           case "dying": {
+            this.petalColor.c -= 0;
+            if (this.centreColor) this.centreColor.c -= 0;
             this.size -= 0.1;
             this.petalDistance += 0.1;
             break;
@@ -234,14 +321,16 @@ export function flowers() {
           drawCircle(startCoordinates, this.size * this.petalSize);
         }
         if (this.centreColor) {
-          ctx.fillStyle = this.centreColor;
+          ctx.fillStyle = formatOKLCHColor(this.centreColor);
           drawCircle([this.origin[0], this.origin[1]], this.size);
         }
       },
     };
   };
 
-  const getCloverVariantConfig = (): Omit<
+  const getCloverVariantConfig = (
+    origin = [Math.random() * canvasSize, Math.random() * canvasSize]
+  ): Omit<
     CuteCirclyFlower,
     | "draw"
     | "grow"
@@ -277,7 +366,7 @@ export function flowers() {
       growthSpeed: canvasSize * 0.00005 + 0.01 * Math.random(),
       lifeStatus: "growing",
       lifetime: Infinity,
-      origin: [Math.random() * canvasSize, Math.random() * canvasSize],
+      origin,
       rotation: Math.floor(360 * Math.random()),
       rotationSpeed: numberJitter(0, 0.1),
       size: 0,
@@ -286,71 +375,10 @@ export function flowers() {
     };
   };
 
-  const createBeeAgent = () => {
-    return {
-      origin: [0, 0],
-      speed: 2,
-      target: undefined,
-      pollen: null,
-      chooseTarget() {
-        if (!flowerDrawList || flowerDrawList.size === 0) return;
-        const currentFlowerList = [...flowerDrawList].filter(
-          (flower) => flower.lifeStatus === "grown"
-        );
-        this.target =
-          currentFlowerList[
-            Math.floor(Math.random() * currentFlowerList.length)
-          ];
-      },
-      isTouchingTarget() {
-        return (
-          Math.abs(this.origin[0] - this.target.origin[0]) < 10 &&
-          Math.abs(this.origin[1] - this.target.origin[1]) < 10
-        );
-      },
-      move() {
-        if (!this.target) return;
-
-        if (this.isTouchingTarget()) {
-          if (this.pollen) {
-            this.target.pollen = this.pollen;
-          }
-          this.pollen = this.target.species;
-          this.chooseTarget();
-        }
-
-        if (this.target) {
-          this.origin = [
-            this.origin[0] - this.target.origin[0] > 0
-              ? this.origin[0] - this.speed
-              : this.origin[0] + this.speed,
-            this.origin[1] - this.target.origin[1] > 0
-              ? this.origin[1] - this.speed
-              : this.origin[1] + this.speed,
-          ];
-        }
-      },
-      draw() {
-        if (!this.target) {
-          this.chooseTarget();
-        }
-        this.move();
-        ctx.fillStyle = formatOKLCHColor(this.pollen?.petalColor) || "black";
-        drawCircle(this.origin, 10);
-
-        if (this.target) {
-          ctx.strokeStyle = "red";
-          ctx.beginPath();
-          ctx.moveTo(...this.origin);
-          ctx.lineTo(...this.target.origin);
-          ctx.stroke();
-          ctx.closePath();
-        }
-      },
-    };
-  };
-
-  const beeList = [createBeeAgent(), createBeeAgent()];
+  const beeList = [
+    createBeeAgent(ctx, flowerDrawList),
+    createBeeAgent(ctx, flowerDrawList),
+  ];
 
   const generateFlowerSpeciesConfig = ({
     petalHue,
@@ -367,7 +395,10 @@ export function flowers() {
     const baseLifetime = Math.random() * 2000 + 300;
 
     const speciesFeatures = {
-      centreColor: Math.random() > 0.5 ? "white" : "#ffffcc",
+      centreColor:
+        Math.random() > 0.5
+          ? { l: 100, c: 0, h: 200 }
+          : { l: 83.24, c: 0.291, h: 96.1 },
       petalCount: Math.round(3 + Math.random() * 10),
       petalSize: Math.random() * 2 + 0.3,
       structureTolerence: Math.random() * 2,
@@ -395,11 +426,12 @@ export function flowers() {
     });
   };
 
-  const cloverGrid = Array.from({ length: 1000 }, (_cell) =>
-    CreateCuteCirclyFlower({
-      ...getCloverVariantConfig(),
-    })
-  ).sort((cloverA, cloverB) => cloverA.petalColor.l - cloverB.petalColor.l);
+  const cloverGrid = [];
+  //   const cloverGrid = Array.from({ length: 1000 }, (_cell) =>
+  //     CreateCuteCirclyFlower({
+  //       ...getCloverVariantConfig(),
+  //     })
+  //   ).sort((cloverA, cloverB) => cloverA.petalColor.l - cloverB.petalColor.l);
 
   const cloverDrawList = [...cloverGrid];
 
@@ -462,8 +494,28 @@ export function flowers() {
     flowerDrawList.add(flower);
   }
 
-  (function drawArtwork(t = 0) {
+  (function drawArtwork() {
+    t++;
     clearCanvas();
+
+    //spawn clover
+    const randomLocation = [
+      canvasSize * Math.random(),
+      canvasSize * Math.random(),
+    ];
+
+    if (isFloorWet(randomLocation)) {
+      cloverDrawList.push(
+        CreateCuteCirclyFlower({
+          ...getCloverVariantConfig(),
+        })
+      );
+    }
+
+    cloverDrawList.sort(
+      (cloverA, cloverB) => cloverA.petalColor.l - cloverB.petalColor.l
+    );
+
     cloverDrawList.forEach((entity) => {
       entity.draw();
     });
@@ -473,21 +525,10 @@ export function flowers() {
         entity.draw();
       });
     beeList.forEach((entity) => entity.draw());
+    console.log(flowerDrawList.size);
 
     window.requestAnimationFrame(drawArtwork);
   })();
-
-  function drawCircle(origin: Coordinates, size: number): void {
-    if (size < 0) {
-      console.warn("circle size too small", size);
-      return;
-    }
-    ctx.beginPath();
-    ctx.moveTo(...origin);
-    ctx.arc(...origin, size, 0, TAU);
-    ctx.fill();
-    ctx.closePath();
-  }
 
   //   function drawClover(
   //     origin: Coordinates = [0, 0],
