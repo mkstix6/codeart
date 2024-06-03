@@ -9,7 +9,7 @@ export const createBeeAgent = (
 
   return {
     origin: [0, 0],
-    speed: 1,
+    speed: 0.5,
     target: undefined,
     pollen: null,
     chooseTarget() {
@@ -64,14 +64,14 @@ export const createBeeAgent = (
       ctx.fillStyle = "black";
       drawCircle([this.origin[0] + 10, this.origin[1] + 10], 4);
 
-      if (this.target) {
-        ctx.strokeStyle = "red";
-        ctx.beginPath();
-        ctx.moveTo(...this.origin);
-        ctx.lineTo(...this.target.origin);
-        ctx.stroke();
-        ctx.closePath();
-      }
+      //   if (this.target) {
+      //     ctx.strokeStyle = "red";
+      //     ctx.beginPath();
+      //     ctx.moveTo(...this.origin);
+      //     ctx.lineTo(...this.target.origin);
+      //     ctx.stroke();
+      //     ctx.closePath();
+      //   }
     },
   };
 };
