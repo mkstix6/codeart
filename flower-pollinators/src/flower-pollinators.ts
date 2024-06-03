@@ -70,17 +70,23 @@ export function flowers() {
   }
 
   function isFloorWet(coordinates) {
-    const center = [
-      Math.abs(canvasSize * Math.sin(t * 0.0003)) % canvasSize,
-      Math.abs(canvasSize * Math.cos(t * 0.000214)) % canvasSize,
-    ];
-    // if (false) {
-    ctx.fillStyle = "#00003302";
-    drawCircle(center, canvasSize / 4);
-    // }
+    // const center = [
+    //   Math.abs(canvasSize * Math.sin(t * 0.0003)) % canvasSize,
+    //   Math.abs(canvasSize * Math.cos(t * 0.000214)) % canvasSize,
+    // ];
+    // // if (false) {
+    // // ctx.fillStyle = "#00003302";
+    // // drawCircle(center, canvasSize / 4);
+    // // }
+    // return (
+    //   Math.abs(center[0] - coordinates[0]) < canvasSize / 4 &&
+    //   Math.abs(center[1] - coordinates[1]) < canvasSize / 4
+    // );
     return (
-      Math.abs(center[0] - coordinates[0]) < canvasSize / 4 &&
-      Math.abs(center[1] - coordinates[1]) < canvasSize / 4
+      Math.tan(
+        coordinates[0] * 0.00441 + coordinates[1] * 0.002 + t * 0.000514
+      ) > 0.9 || Math.cos(coordinates[1] * 0.002 + t * -0.000514) > 0.9
+      //   Math.tan(coordinates[1] * 1 + t * 0.0014132) > 0.2
     );
   }
 
@@ -219,7 +225,10 @@ export function flowers() {
           case "dormant": {
             this.centreColor = { l: 38.82, c: 0.023, h: 43.41 };
             this.petalSize -= this.petalSize > 0 ? 0.0005 : 0;
-            this.petalColor.c -= 1;
+            this.petalColor.c -= 0.01;
+            this.petals.forEach(
+              (petal) => (petal.petalColor = this.petalColor)
+            );
             this.size -= this.size > 1 ? 0.0001 : 0;
             if (this.petalSize < 0.001) {
               this.lifeStatus = "dying";
@@ -240,7 +249,7 @@ export function flowers() {
             break;
           }
           case "growing": {
-            this.petalColor = this.species.petalColor;
+            this.petalColor = { ...this.species.petalColor };
             if (!isFloorWet(this.origin)) {
               this.lifeStatus = "dormant";
             }
@@ -261,6 +270,7 @@ export function flowers() {
             break;
           }
           case "grown": {
+            this.petalColor = this.species.petalColor;
             this.rotation += this.rotationSpeed;
             if (this.age > 1000) {
               this.lifeStatus = "dying";
@@ -268,7 +278,8 @@ export function flowers() {
             break;
           }
           case "dying": {
-            this.petalColor.c -= 0;
+            this.petalColor.c -= 0.1;
+            this.petalColor.l -= 0.1;
             if (this.centreColor) this.centreColor.c -= 0;
             this.size -= 0.1;
             this.petalDistance += 0.1;
@@ -276,6 +287,7 @@ export function flowers() {
           }
           case "dead": {
             flowerDrawList.delete(this);
+            // cloverDrawList.delete(this); // FIXME clovers never get deleted
             break;
           }
 
@@ -510,6 +522,16 @@ export function flowers() {
           ...getCloverVariantConfig(),
         })
       );
+    }
+
+    const wetResolution = 40;
+    for (let i = 0; i < canvasSize; i += canvasSize * (1 / wetResolution)) {
+      for (let j = 0; j < canvasSize; j += canvasSize * (1 / wetResolution)) {
+        if (isFloorWet([i, j])) {
+          ctx.fillStyle = "#00002212";
+          drawCircle([i, j], canvasSize * (1 / wetResolution));
+        }
+      }
     }
 
     cloverDrawList.sort(
