@@ -1,7 +1,11 @@
 import { createBeeAgent } from "./bee.ts";
 import type { LCHValues } from "./color.ts";
 import { formatOKLCHColor } from "./color.ts";
-import { initialiseDrawCircleHelper } from "./shape.ts";
+import {
+  entityRotaterAroundPoint,
+  makeEntityPointRotator,
+  initialiseDrawCircleHelper,
+} from "./shape.ts";
 
 type Coordinates = [number, number];
 
@@ -42,6 +46,9 @@ interface CuteCirclyFlower extends SpeciesFeatures {
   rotationSpeed: number;
   size: number;
 }
+
+const startingFlowerCount = 200;
+const startingBeeCount = 10;
 
 export function flowers() {
   const TAU = Math.PI * 2;
@@ -133,7 +140,7 @@ export function flowers() {
       createPetal(colorJitter(petalColor, colorTolerence))
     );
     return {
-      species,
+      species: Object.freeze(species),
       age: Math.random() * lifetime,
       centreColor,
       colorTolerence,
@@ -209,7 +216,7 @@ export function flowers() {
           }
           case "dispersing": {
             this.size = 10;
-            this.centreColor = this.petalColor;
+            this.centreColor = { ...this.petalColor };
             this.origin = [
               this.origin[0] +
                 /*(Math.random() - 0.5) **/ Math.sin(this.direction),
@@ -225,9 +232,9 @@ export function flowers() {
           case "dormant": {
             this.centreColor = { l: 38.82, c: 0.023, h: 43.41 };
             this.petalSize -= this.petalSize > 0 ? 0.0005 : 0;
-            this.petalColor.c -= 0.01;
+            this.petalColor.c -= this.petalColor.c > 0 ? 0.001 : 0;
             this.petals.forEach(
-              (petal) => (petal.petalColor = this.petalColor)
+              (petal) => (petal.petalColor = { ...this.petalColor })
             );
             this.size -= this.size > 1 ? 0.0001 : 0;
             if (this.petalSize < 0.001) {
@@ -250,6 +257,9 @@ export function flowers() {
           }
           case "growing": {
             this.petalColor = { ...this.species.petalColor };
+            this.petals.forEach(
+              (petal) => (petal.petalColor = { ...this.petalColor })
+            );
             if (!isFloorWet(this.origin)) {
               this.lifeStatus = "dormant";
             }
@@ -270,7 +280,7 @@ export function flowers() {
             break;
           }
           case "grown": {
-            this.petalColor = this.species.petalColor;
+            this.petalColor = { ...this.species.petalColor };
             this.rotation += this.rotationSpeed;
             if (this.age > 1000) {
               this.lifeStatus = "dying";
@@ -327,7 +337,7 @@ export function flowers() {
               <Coordinates>(
                 petalCoordinates.map((value: number): number => value)
               ),
-              (i * 360) / petalCount
+              (i * TAU) / petalCount
             )
           );
           drawCircle(startCoordinates, this.size * this.petalSize);
@@ -363,14 +373,14 @@ export function flowers() {
       maxSize: canvasSize * 0.03,
       structureTolerence: 10,
       growthSpeed: Math.random() * 0.03 + 0.01,
-      petalColor: {
+      petalColor: Object.freeze({
         l:
           (Math.ceil(Math.random() * 5) + 5) *
           Math.ceil(Math.random() * 3) *
           1.7,
         c: 0.12,
         h: cloverGreenHue,
-      },
+      }),
     };
 
     return {
@@ -379,18 +389,17 @@ export function flowers() {
       lifeStatus: "growing",
       lifetime: Infinity,
       origin,
-      rotation: Math.floor(360 * Math.random()),
-      rotationSpeed: numberJitter(0, 0.1),
+      rotation: Math.floor(TAU * Math.random()),
+      rotationSpeed: numberJitter(0, 0.001),
       size: 0,
-      species: speciesFeatures,
+      species: Object.freeze(speciesFeatures),
       ...speciesFeatures,
     };
   };
 
-  const beeList = [
-    createBeeAgent(ctx, flowerDrawList),
-    createBeeAgent(ctx, flowerDrawList),
-  ];
+  const beeList = Array.from({ length: startingBeeCount }, (_cell) =>
+    createBeeAgent(ctx, flowerDrawList)
+  );
 
   const generateFlowerSpeciesConfig = ({
     petalHue,
@@ -406,7 +415,7 @@ export function flowers() {
     petalHue = petalHue || Math.random() * 360;
     const baseLifetime = Math.random() * 2000 + 300;
 
-    const speciesFeatures = {
+    const speciesFeatures = Object.freeze({
       centreColor:
         Math.random() > 0.5
           ? { l: 100, c: 0, h: 200 }
@@ -419,18 +428,18 @@ export function flowers() {
       growthSpeed: canvasSize * (0.0001 * Math.random()),
       colorTolerence: { l: 3, c: 0.01, h: 3 },
       lifetime: baseLifetime + baseLifetime * 0.1 * Math.random(),
-      petalColor: {
+      petalColor: Object.freeze({
         l: 75,
         c: 0.2,
         h: petalHue,
-      },
-    };
+      }),
+    });
 
     return () => ({
-      species: speciesFeatures,
+      species: Object.freeze(speciesFeatures),
       origin: origin || [(petalHue * 50) % canvasSize, petalHue * 2],
       rotation: Math.floor(360 * Math.random()),
-      rotationSpeed: numberJitter(0, 0.5),
+      rotationSpeed: numberJitter(0, 0.005),
       size: 0,
       lifeStatus,
       age: 0,
@@ -495,7 +504,7 @@ export function flowers() {
   );
 
   // create flowers at start
-  for (let index = 0; index < 5; index++) {
+  for (let index = 0; index < startingFlowerCount; index++) {
     const getFlowerVariantConfig = generateFlowerSpeciesConfig({
       // petalHue,
       maxSize: canvasSize * (0.03 * Math.random() ** 2 + 0.01),
@@ -547,7 +556,7 @@ export function flowers() {
         entity.draw();
       });
     beeList.forEach((entity) => entity.draw());
-    console.log(flowerDrawList.size);
+    console.log("🌼", flowerDrawList.size);
 
     window.requestAnimationFrame(drawArtwork);
   })();
@@ -604,28 +613,4 @@ export function flowers() {
   //     ctx.fill();
   //     ctx.closePath();
   //   }
-
-  function makeEntityPointRotator(
-    origin: Coordinates = [0, 0],
-    angle: number = 0
-  ): (point: Coordinates) => Coordinates {
-    return (point) => {
-      return entityRotaterAroundPoint(origin, point, angle);
-    };
-  }
-
-  function entityRotaterAroundPoint(
-    centerOfRotation: Coordinates = [0, 0],
-    CoordinatesToRotate: Coordinates,
-    angle: number
-  ): Coordinates {
-    const [cx, cy] = centerOfRotation;
-    const [x, y] = CoordinatesToRotate;
-    const radians = (Math.PI / 180) * angle;
-    const cos = Math.cos(radians);
-    const sin = Math.sin(radians);
-    const nx = cos * (x - cx) + sin * (y - cy) + cx;
-    const ny = cos * (y - cy) - sin * (x - cx) + cy;
-    return [nx, ny];
-  }
 }
