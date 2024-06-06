@@ -47,7 +47,7 @@ interface CuteCirclyFlower extends SpeciesFeatures {
   size: number;
 }
 
-const startingFlowerCount = 200;
+const startingFlowerCount = 2;
 const startingBeeCount = 10;
 
 export function flowers() {
@@ -92,7 +92,7 @@ export function flowers() {
     return (
       Math.tan(
         coordinates[0] * 0.00441 + coordinates[1] * 0.002 + t * 0.000514
-      ) > 0.9 || Math.cos(coordinates[1] * 0.002 + t * -0.000514) > 0.9
+      ) > 0.5 || Math.cos(coordinates[1] * 0.002 + t * -0.000514) > 0.5
       //   Math.tan(coordinates[1] * 1 + t * 0.0014132) > 0.2
     );
   }
@@ -485,7 +485,7 @@ export function flowers() {
     "mousemove",
     // "click",
     function (event) {
-      if (!drawingActive) return;
+      if (!drawingActive || Math.random() > 0.5) return;
 
       //   let petalHue = Math.random() * 360;
       let rect = canvas.getBoundingClientRect();
@@ -494,7 +494,10 @@ export function flowers() {
       const getFlowerVariantConfig = generateFlowerSpeciesConfig({
         // petalHue,
         maxSize: canvasSize * (0.03 * Math.random() ** 2 + 0.01),
-        origin: [x, y],
+        origin: [
+          x + (Math.random() - 0.5) * canvasSize * 0.2,
+          y + (Math.random() - 0.5) * canvasSize * 0.2,
+        ],
         lifeStatus: "seed",
       });
       const flower = CreateCuteCirclyFlower(getFlowerVariantConfig());
